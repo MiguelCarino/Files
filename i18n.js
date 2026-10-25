@@ -368,7 +368,7 @@ const I18N = {
         'ready to convert.': '変換の準備ができました。',
         'Signature Cleanup': '署名クリーンアップ',
         'Image Converter': '画像コンバーター',
-        'Transcode': 'トランスコード',
+        'Transcode': '変換',
         'Back to the file screen': 'ファイル画面に戻る',
         'Drop or paste a file — it is identified by its magic bytes and you choose what to do with it. Everything runs in this browser; nothing is uploaded.': 'ファイルをドロップまたは貼り付けると、マジックバイトで種類を判別し、何をするかを選べます。すべてこのブラウザ内で動作し、何もアップロードされません。',
         'Drop any file here — or paste with Ctrl+V': 'ここに任意のファイルをドロップ — または Ctrl+V で貼り付け',

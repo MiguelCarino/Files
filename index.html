@@ -58,14 +58,11 @@
     .tool.active { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
     .tool > .ws { flex: 1; min-height: 0; }
     .ws-rail .t-label { margin-top: 4px; }
-    /* Below 900px the rail stacks above the pane (files in first) rather than
-       becoming a drawer: it holds the module's input. */
+    /* Below 900px the rail stacks above the pane (carino-ui.css .ws-stack): it
+       holds the module's input, so the module scrolls as one column. */
     @media (max-width: 900px) {
       .tool.active { overflow-y: auto; }
-      .ws.ws-stack { flex-direction: column; min-height: 0; }
-      .ws.ws-stack .ws-rail { position: static; transform: none; width: auto; box-shadow: none; border-right: 0; border-bottom: 1px solid var(--border); overflow: visible; }
       .tool > .ws { flex: none; }
-      .ws.ws-stack .ws-pane { overflow: visible; }
     }
 
     .panel {
