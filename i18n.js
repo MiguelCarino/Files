@@ -6,6 +6,18 @@
 
 const I18N = {
     es: {
+        // Modules bar and short hero
+        'File': 'Archivo',
+        'Images': 'Imágenes',
+        'Signature': 'Firma',
+        'Convert, read and clean up files': 'Convierte, lee y limpia archivos',
+        'Drop or paste a file: it is identified by its magic bytes and you choose what to do with it.': 'Suelta o pega un archivo: se identifica por sus magic bytes y tú eliges qué hacer con él.',
+        'Runs in your browser. Nothing you add here is uploaded.': 'Funciona en tu navegador. Nada de lo que añades aquí se sube.',
+        'Or open:': 'O abre:',
+        'Image converter': 'Conversor de imágenes',
+        'ffmpeg command': 'Comando ffmpeg',
+        'Drop signature photos here': 'Suelta aquí fotos de firmas',
+        'Export size': 'Tamaño de exportación',
         'Late shift.': 'Turno nocturno.',
         'Good morning.': 'Buenos días.',
         'Good afternoon.': 'Buenas tardes.',
@@ -168,6 +180,18 @@ const I18N = {
         'WAV ready': 'WAV listo',
     },
     'pt-BR': {
+        // Modules bar and short hero
+        'File': 'Arquivo',
+        'Images': 'Imagens',
+        'Signature': 'Assinatura',
+        'Convert, read and clean up files': 'Converta, leia e limpe arquivos',
+        'Drop or paste a file: it is identified by its magic bytes and you choose what to do with it.': 'Solte ou cole um arquivo: ele é identificado pelos magic bytes e você escolhe o que fazer com ele.',
+        'Runs in your browser. Nothing you add here is uploaded.': 'Roda no seu navegador. Nada do que você adiciona aqui é enviado.',
+        'Or open:': 'Ou abra:',
+        'Image converter': 'Conversor de imagens',
+        'ffmpeg command': 'Comando ffmpeg',
+        'Drop signature photos here': 'Solte aqui fotos de assinaturas',
+        'Export size': 'Tamanho de exportação',
         'Late shift.': 'Turno da noite.',
         'Good morning.': 'Bom dia.',
         'Good afternoon.': 'Boa tarde.',
@@ -321,6 +345,18 @@ const I18N = {
         'WAV ready': 'WAV pronto',
     },
     ja: {
+        // Modules bar and short hero
+        'File': 'ファイル',
+        'Images': '画像',
+        'Signature': '署名',
+        'Convert, read and clean up files': 'ファイルを変換・読み取り・きれいに整える',
+        'Drop or paste a file: it is identified by its magic bytes and you choose what to do with it.': 'ファイルをドロップまたは貼り付けると、マジックバイトで種類を判別し、何をするかを選べます。',
+        'Runs in your browser. Nothing you add here is uploaded.': 'ブラウザ内で動作します。ここに追加したものはアップロードされません。',
+        'Or open:': 'または開く:',
+        'Image converter': '画像コンバーター',
+        'ffmpeg command': 'ffmpeg コマンド',
+        'Drop signature photos here': '署名の写真をここにドロップ',
+        'Export size': '書き出しサイズ',
         'Late shift.': '夜勤お疲れさま。',
         'Good morning.': 'おはようございます。',
         'Good afternoon.': 'こんにちは。',
@@ -474,6 +510,18 @@ const I18N = {
         'WAV ready': 'WAVの準備完了',
     },
     ru: {
+        // Modules bar and short hero
+        'File': 'Файл',
+        'Images': 'Изображения',
+        'Signature': 'Подпись',
+        'Convert, read and clean up files': 'Конвертируйте, читайте и очищайте файлы',
+        'Drop or paste a file: it is identified by its magic bytes and you choose what to do with it.': 'Перетащите или вставьте файл — он определяется по магическим байтам, а вы выбираете, что с ним делать.',
+        'Runs in your browser. Nothing you add here is uploaded.': 'Работает в вашем браузере. Ничего из добавленного сюда не загружается.',
+        'Or open:': 'Или откройте:',
+        'Image converter': 'Конвертер изображений',
+        'ffmpeg command': 'Команда ffmpeg',
+        'Drop signature photos here': 'Перетащите сюда фото подписей',
+        'Export size': 'Размер экспорта',
         'Late shift.': 'Ночная смена.',
         'Good morning.': 'Доброе утро.',
         'Good afternoon.': 'Добрый день.',
@@ -651,7 +699,6 @@ function applyStaticI18n() {
 
 // Prominent title/placeholder attributes, translated by explicit selector.
 const ATTR_I18N = [
-    ['#ws-back',      'title',       'Back to the file screen'],
     ['#auto-clear',   'title',       'Clear'],
     ['#pdf-clear',    'title',       'Remove'],
     ['#pdf-range',    'placeholder', 'All pages'],
