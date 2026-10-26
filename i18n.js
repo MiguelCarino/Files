@@ -6,6 +6,8 @@
 
 const I18N = {
     es: {
+        'Previous page': 'Página anterior',
+        'Next page': 'Página siguiente',
         // Modules bar and short hero
         'File': 'Archivo',
         'Images': 'Imágenes',
@@ -252,6 +254,8 @@ const I18N = {
         'Encoding failed for {name}': 'Falló la codificación de {name}',
     },
     'pt-BR': {
+        'Previous page': 'Página anterior',
+        'Next page': 'Próxima página',
         // Modules bar and short hero
         'File': 'Arquivo',
         'Images': 'Imagens',
@@ -489,6 +493,8 @@ const I18N = {
         'Encoding failed for {name}': 'Falha ao codificar {name}',
     },
     ja: {
+        'Previous page': '前のページ',
+        'Next page': '次のページ',
         // Modules bar and short hero
         'File': 'ファイル',
         'Images': '画像',
@@ -726,6 +732,8 @@ const I18N = {
         'Encoding failed for {name}': '{name} のエンコードに失敗しました',
     },
     ru: {
+        'Previous page': 'Предыдущая страница',
+        'Next page': 'Следующая страница',
         // Modules bar and short hero
         'File': 'Файл',
         'Images': 'Изображения',

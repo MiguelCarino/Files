@@ -164,6 +164,7 @@
       background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;
       background-color: #101010;
     }
+    #pdf-grid .rcard .thumb { cursor: zoom-in; }
     .rcard .thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .rcard .rbody { padding: 10px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
     .rcard .rmeta { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-family: var(--mono); font-size: var(--fs-label); color: var(--text-muted); }
@@ -280,12 +281,19 @@
     .auto-conv .seg label { padding: 5px 8px; font-size: var(--fs-sm); }
     .auto-conv .cg { gap: 5px; }
     .auto-conv .badge:empty { display: none; }
-    .view-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+    .view-acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    /* Leafing through a PDF on the file screen: renders on demand, so it works
+       before, during and after a conversion. */
+    .pdf-pager { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; min-width: 0; }
+    .pdf-pager input[type=range] { flex: 1; min-width: 80px; accent-color: var(--accent); }
+    .pdf-pager .pp-n { font-family: var(--mono); font-size: var(--fs-label); color: var(--text-sec); white-space: nowrap; min-width: 9ch; text-align: center; }
     /* The recogniser's own controls, on the file screen. */
     .ocr-ctl { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
     .ocr-ctl .select { width: auto; flex: 1 1 130px; min-width: 120px; padding: 6px 9px; }
     /* Rendered pages: a scrolling strip, not a page-long grid. */
-    #pdf-grid { max-height: min(520px, 62vh); overflow-y: auto; }
+    /* max-content rows: with a max-height the grid otherwise squeezes every
+       (overflow:hidden, so min-height 0) card to fit that height. */
+    #pdf-grid { max-height: min(520px, 62vh); overflow-y: auto; grid-auto-rows: max-content; align-content: start; }
 
     /* ─── small screens ───────────────────────────────────────
        The shell is a fixed-height flex column, so mobile needs a viewport
@@ -457,6 +465,12 @@
           </div>
           <div class="auto-preview hidden" id="auto-preview"><img id="auto-thumb" alt=""></div>
           <div class="view-acts hidden" id="auto-view-acts">
+            <div class="pdf-pager hidden" id="pdf-pager">
+              <button id="pp-prev" class="btn btn-sm" type="button" aria-label="Previous page">‹</button>
+              <input type="range" id="pp-range" min="1" max="1" value="1" aria-label="Page">
+              <button id="pp-next" class="btn btn-sm" type="button" aria-label="Next page">›</button>
+              <span class="pp-n" id="pp-n">1 / 1</span>
+            </div>
             <button id="av-ocr" class="btn btn-sm" type="button">🔍 <span data-i18n>Extract text</span></button>
           </div>
           <div id="pdf-grid" class="result-grid hidden"></div>
@@ -1135,6 +1149,8 @@ const PdfTool = (() => {
     // to OCR". The page is re-rendered for the recogniser rather than reusing
     // this card's blob, which may have been exported at 72 DPI.
     div.querySelector('.ocr-btn').addEventListener('click', () => AutoTool.ocrPage(num));
+    // The thumbnail opens that page in the preview above, as the pager would.
+    div.querySelector('.thumb').addEventListener('click', () => AutoTool.showPage(num));
     grid.appendChild(div);
   }
 
@@ -1192,7 +1208,16 @@ const PdfTool = (() => {
     btnZip.disabled = false;
   });
 
-  return { parseRange, open: handleFile, renderForOcr, reset: resetResults };
+  /* Any page at screen resolution, for the file screen's pager. Opens its own
+     document (see openDoc) so it never touches a conversion in progress. */
+  async function previewPage(num){
+    const pdf = await openDoc();
+    if(!pdf) return null;
+    try { return await renderPage(pdf, num, 96, 'image/png', 'white', 1); }
+    finally { try { await pdf.destroy(); } catch(_){} }
+  }
+
+  return { parseRange, open: handleFile, renderForOcr, previewPage, reset: resetResults };
 })();
 
 /* ════════════════════════════════════════════════════════════════
@@ -2432,6 +2457,8 @@ const AutoTool = (() => {
   const convBox = $('auto-conv'), convState = $('ac-state');
   const pdfBox = $('auto-pdf'), viewActs = $('auto-view-acts');
   let previewURL = null, convFiles = [], hasPdf = false;
+  // The PDF page on screen, and a ticket so only the latest request paints.
+  let pdfPage = 1, pdfPages = 1, pageTicket = 0, pdfName = '';
 
   /* The one outcome this screen cannot finish itself, and the only one that
      used to dead-end: it opened the inspector on an empty dropzone and left
@@ -2500,7 +2527,37 @@ const AutoTool = (() => {
     // hold an object URL each, and only the renderer knows to give them back.
     PdfTool.reset();
     viewActs.classList.add('hidden');
+    $('pdf-pager').classList.add('hidden');
     hasPdf = false;
+    pageTicket++;
+  }
+
+  /* The pager. The number moves at once; the render follows, and a slow
+     render that has been overtaken by a newer request is dropped. */
+  function syncPager(){
+    $('pp-range').max = pdfPages;
+    $('pp-range').value = pdfPage;
+    $('pp-n').textContent = `${pdfPage} / ${pdfPages}`;
+    $('pp-prev').disabled = pdfPage <= 1;
+    $('pp-next').disabled = pdfPage >= pdfPages;
+    [['pp-prev', 'Previous page'], ['pp-next', 'Next page'], ['pp-range', 'Page']].forEach(([id, k]) => {
+      $(id).setAttribute('aria-label', T(k)); $(id).title = T(k);
+    });
+  }
+  let pageTimer = 0;
+  function goPage(num, delay = 0){
+    if(!hasPdf) return;
+    num = Math.max(1, Math.min(pdfPages, num | 0));
+    pdfPage = num;
+    syncPager();
+    const ticket = ++pageTicket;
+    clearTimeout(pageTimer);
+    pageTimer = setTimeout(async () => {
+      try {
+        const r = await PdfTool.previewPage(num);
+        if(r && ticket === pageTicket) showBlob(r.blob, `${pdfName} — ${T('Page')} ${num}`);
+      } catch(e){ console.error(e); }
+    }, delay);
   }
 
   /* OCR runs the moment an image lands, so the common case — paste a
@@ -2615,6 +2672,10 @@ const AutoTool = (() => {
       if(loaded && loaded.preview){
         showBlob(loaded.preview.blob, first.name);
         hasPdf = true;
+        pdfName = first.name;
+        pdfPage = 1; pdfPages = loaded.pageCount;
+        syncPager();
+        $('pdf-pager').classList.toggle('hidden', pdfPages < 2);
         viewActs.classList.remove('hidden');
       }
     }
@@ -2645,8 +2706,22 @@ const AutoTool = (() => {
     cards[n - 1].click();
   });
 
-  // Page 1 of a PDF is already an image; hand it straight to the recogniser.
-  $('av-ocr').addEventListener('click', () => { if(hasPdf) ocrPage(1); });
+  // The page on screen goes to the recogniser (re-rendered at OCR resolution).
+  $('av-ocr').addEventListener('click', () => { if(hasPdf) ocrPage(pdfPage); });
+  $('pp-prev').addEventListener('click', () => goPage(pdfPage - 1));
+  $('pp-next').addEventListener('click', () => goPage(pdfPage + 1));
+  // Dragging repaints the number live and renders once the thumb rests.
+  $('pp-range').addEventListener('input', () => goPage(+$('pp-range').value, 120));
+  // ← / → leaf through the PDF while the file screen is up.
+  window.addEventListener('keydown', e => {
+    if(!hasPdf || e.ctrlKey || e.metaKey || e.altKey) return;
+    if(!$('tool-auto').classList.contains('active') || result.classList.contains('hidden')) return;
+    const ae = document.activeElement;
+    // Includes the slider, which handles its own arrows.
+    if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
+    if(e.key === 'ArrowLeft'){ e.preventDefault(); goPage(pdfPage - 1); }
+    else if(e.key === 'ArrowRight'){ e.preventDefault(); goPage(pdfPage + 1); }
+  });
   $('ac-more').addEventListener('click', () => { ImgTool.open(convFiles); showTool('images'); });
 
   const acFmt = () => document.querySelector('input[name="ac-fmt"]:checked').value;
@@ -2715,7 +2790,7 @@ const AutoTool = (() => {
     receive(files);
   });
 
-  return { receive, ocrPage };
+  return { receive, ocrPage, showPage: goPage };
 })();
 
 /* expose internals for testing / power users */
