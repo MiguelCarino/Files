@@ -681,7 +681,7 @@
         <div class="cg">
           <span class="cg-label"><span data-i18n>Quality (CRF)</span> <span class="val" id="tc-crf-val">23</span></span>
           <input type="range" id="tc-crf" min="0" max="51" value="23">
-          <div class="hint">Lower = better quality, bigger file. <b>18–28</b> is the sane range for H.264/H.265; VP9/AV1 use ~<b>30</b>.</div>
+          <div class="hint" data-i18n-html>Lower = better quality, bigger file. <b>18–28</b> is the sane range for H.264/H.265; VP9/AV1 use ~<b>30</b>.</div>
         </div>
         <div class="cg">
           <span class="cg-label" data-i18n>Resolution</span>
@@ -696,7 +696,7 @@
           <span class="cg-label" data-i18n>Audio</span>
           <select class="select" id="tc-audio">
             <option value="copy" selected data-i18n>Copy (no re-encode)</option>
-            <option value="opus">Opus 128k (stereo)</option>
+            <option value="opus" data-i18n>Opus 128k (stereo)</option>
             <option value="aac">AAC 192k</option>
             <option value="none" data-i18n>Strip audio</option>
           </select>
@@ -911,7 +911,7 @@ async function sniffFile(file){
   if(ascii(0, 'OggS'))                       return { kind: 'audio', label: 'Ogg audio' };
   if(ascii(0, 'RIFF') && ascii(8, 'WAVE'))   return { kind: 'audio', label: 'WAV audio' };
   if(ftyp && (ftyp.startsWith('m4a') || ftyp.startsWith('m4b'))) return { kind: 'audio', label: 'M4A/AAC audio' };
-  if(ftyp)                                   return { kind: 'video', label: 'MP4/MOV video (' + ftyp + ')' };
+  if(ftyp)                                   return { kind: 'video', label: 'MP4/MOV video', detail: ftyp };
   if(buf[0] === 0x1A && buf[1] === 0x45 && buf[2] === 0xDF && buf[3] === 0xA3) return { kind: 'video', label: 'Matroska / WebM' };
   const head = new TextDecoder().decode(buf).trimStart().toLowerCase();
   if(head.startsWith('<?xml') || head.startsWith('<svg')) return { kind: 'image', label: 'SVG image' };
@@ -934,7 +934,7 @@ function heicModule(){
       const s = document.createElement('script');
       s.src = 'vendor/libheif/libheif-bundle.js';
       s.onload = () => resolve();
-      s.onerror = () => { heicModPromise = null; reject(new Error('Could not load the HEIC decoder.')); };
+      s.onerror = () => { heicModPromise = null; reject(new Error(T('Could not load the HEIC decoder.'))); };
       document.head.appendChild(s);
     }).then(() => window.libheif());
   }
@@ -944,14 +944,14 @@ async function heicToCanvas(file){
   const mod = await heicModule();
   const decoder = new mod.HeifDecoder();
   const images = decoder.decode(await file.arrayBuffer());
-  if(!images.length) throw new Error('No image found inside this HEIC file.');
+  if(!images.length) throw new Error(T('No image found inside this HEIC file.'));
   const image = images[0];
   const w = image.get_width(), h = image.get_height();
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
   const id = ctx.createImageData(w, h);
-  await new Promise((res, rej) => image.display(id, d => d ? res() : rej(new Error('HEIC decode failed.'))));
+  await new Promise((res, rej) => image.display(id, d => d ? res() : rej(new Error(T('HEIC decode failed.')))));
   images.forEach(i => { try { i.free(); } catch(_){} });
   ctx.putImageData(id, 0, 0);
   return canvas;
@@ -965,7 +965,7 @@ async function normalizeImageFile(file){
   if(!heic) return file;
   const canvas = await heicToCanvas(file);
   const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
-  if(!blob) throw new Error('Could not re-encode HEIC as PNG.');
+  if(!blob) throw new Error(T('Could not re-encode HEIC as PNG.'));
   return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.png', { type: 'image/png' });
 }
 const isImageLike = f => (f.type && f.type.startsWith('image/')) || isHeicName(f.name);
@@ -1044,7 +1044,7 @@ const PdfTool = (() => {
     }
     await page.render({ canvasContext: ctx, viewport }).promise;
     const blob = await new Promise(r => canvas.toBlob(r, format, quality));
-    if(!blob) throw new Error('Could not encode page ' + num + '.');
+    if(!blob) throw new Error(T('Could not encode page {n}.').replace('{n}', num));
     return { blob, w: canvas.width, h: canvas.height };
   }
 
@@ -1149,7 +1149,7 @@ const PdfTool = (() => {
     try {
       pdf = await openDoc();
       const pages = parseRange($('pdf-range').value, pdf.numPages);
-      if(!pages.length) throw new Error('No valid pages selected');
+      if(!pages.length) throw new Error(T('No valid pages selected'));
       const format = getFmt(), bg = getBg();
       const dpi = Math.min(600, Math.max(36, parseInt($('pdf-scale').value, 10) || 150));
       const quality = (parseInt($('pdf-quality').value, 10) || 90) / 100;
@@ -1333,11 +1333,11 @@ const OcrTool = (() => {
           }
           canvas.toBlob(blob => {
             URL.revokeObjectURL(url);
-            blob ? resolve(blob) : reject(new Error('Failed to preprocess image.'));
+            blob ? resolve(blob) : reject(new Error(T('Failed to preprocess image.')));
           }, 'image/png', 1.0);
         } catch(err){ URL.revokeObjectURL(url); reject(err); }
       };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not load image.')); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(T('Could not load image.'))); };
       img.src = url;
     });
   }
@@ -1587,6 +1587,7 @@ const SigTool = (() => {
 
     const { kept, dropped } = despeckle(mask, w, h, Math.max(1, opts.minBlob));
     stats.blobs = `${kept} kept / ${dropped} dropped`;
+    stats.kept = kept; stats.dropped = dropped;
     for(let j = 0; j < total; j++) if(!mask[j]) alpha[j] = 0;
 
     let minX = w, minY = h, maxX = -1, maxY = -1;
@@ -1815,7 +1816,9 @@ const SigTool = (() => {
   function syncStatline(){
     if(!current){ statline.textContent = T('No image loaded.'); return; }
     const st = current.stats;
-    statline.textContent = `${current.name} · ${st.in} → ${st.out} · thr ${st.threshold} · ink ${st.inkPct} (${st.ink}) · blobs ${st.blobs}` + (st.warning ? ` · ⚠ ${st.warning}` : '');
+    const thr = String(st.threshold).replace(/ auto$/, ' ' + T('auto'));
+    const blobs = T('{kept} kept / {dropped} dropped').replace('{kept}', st.kept).replace('{dropped}', st.dropped);
+    statline.textContent = `${current.name} · ${st.in} → ${st.out} · ${T('thr')} ${thr} · ${T('ink')} ${st.inkPct} (${T(st.ink)}) · ${T('blobs')} ${blobs}` + (st.warning ? ` · ⚠ ${T(st.warning)}` : '');
   }
 
   function reprocess(item){
@@ -2080,7 +2083,7 @@ const ImgTool = (() => {
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, w, h);
     const blob = await new Promise(r => canvas.toBlob(r, format, quality));
-    if(!blob) throw new Error('Encoding failed for ' + name);
+    if(!blob) throw new Error(T('Encoding failed for {name}').replace('{name}', name));
     const ext = format === 'image/jpeg' ? 'jpg' : format.split('/')[1];
     return { blob, ext, w, h, name: name.replace(/\.[^.]+$/, '') + '.' + ext };
   }
@@ -2093,7 +2096,7 @@ const ImgTool = (() => {
       const img = await new Promise((res, rej) => {
         const i = new Image();
         i.onload = () => res(i);
-        i.onerror = () => rej(new Error('Could not load image.'));
+        i.onerror = () => rej(new Error(T('Could not load image.')));
         i.src = url;
       });
       return await encodeFromImage(img, norm.name, format, quality, maxDim);
@@ -2173,13 +2176,16 @@ const TranscodeTool = (() => {
     vp9:  { none: 'libvpx-vp9', nvidia: null,          intel: 'vp9_qsv',  amd: null,       container: 'webm' },
   };
 
+  // Explanation lines go through T() with {name} placeholders filled after.
+  const F = (s, vars) => T(s).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+
   function qualityFlags(encoder, q){
-    if(/nvenc$/.test(encoder))  return [`-rc vbr -cq ${q} -preset p6`, `NVENC constant-quality VBR at CQ ${q}, preset p6 (slower = better).`];
-    if(/qsv$/.test(encoder))    return [`-global_quality ${q} -preset slow`, `QSV ICQ quality ${q} with the slow preset.`];
-    if(/amf$/.test(encoder))    return [`-rc cqp -qp_p ${q} -qp_i ${q}`, `AMF constant-QP mode at QP ${q} for both I and P frames.`];
-    if(encoder === 'libvpx-vp9') return [`-crf ${q} -b:v 0 -deadline good -cpu-used 2`, `VP9 constant quality: CRF ${q} with -b:v 0 (required), good deadline, speed 2.`];
-    if(encoder === 'libaom-av1') return [`-crf ${q} -b:v 0 -cpu-used 4`, `AOM AV1 constant quality: CRF ${q}; -cpu-used 4 balances speed vs compression.`];
-    return [`-crf ${q} -preset slow`, `Constant Rate Factor ${q} with the slow preset (better compression, same quality).`];
+    if(/nvenc$/.test(encoder))  return [`-rc vbr -cq ${q} -preset p6`, F('NVENC constant-quality VBR at CQ {q}, preset p6 (slower = better).', { q })];
+    if(/qsv$/.test(encoder))    return [`-global_quality ${q} -preset slow`, F('QSV ICQ quality {q} with the slow preset.', { q })];
+    if(/amf$/.test(encoder))    return [`-rc cqp -qp_p ${q} -qp_i ${q}`, F('AMF constant-QP mode at QP {q} for both I and P frames.', { q })];
+    if(encoder === 'libvpx-vp9') return [`-crf ${q} -b:v 0 -deadline good -cpu-used 2`, F('VP9 constant quality: CRF {q} with -b:v 0 (required), good deadline, speed 2.', { q })];
+    if(encoder === 'libaom-av1') return [`-crf ${q} -b:v 0 -cpu-used 4`, F('AOM AV1 constant quality: CRF {q}; -cpu-used 4 balances speed vs compression.', { q })];
+    return [`-crf ${q} -preset slow`, F('Constant Rate Factor {q} with the slow preset (better compression, same quality).', { q })];
   }
 
   function build(){
@@ -2196,35 +2202,35 @@ const TranscodeTool = (() => {
     let encoder = ENCODERS[codec][gpu];
     if(!encoder){
       encoder = ENCODERS[codec].none;
-      explain.push(['(fallback)', `No reliable ${codec.toUpperCase()} hardware encoder for that GPU — using software ${encoder} instead.`]);
+      explain.push([T('(fallback)'), F('No reliable {codec} hardware encoder for that GPU — using software {encoder} instead.', { codec: codec.toUpperCase(), encoder })]);
     }
     const container = ENCODERS[codec].container;
     const base = input.replace(/\.[^.\/\\]+$/, '');
     const output = `${base}_encoded.${container}`;
 
     const parts = [`ffmpeg -y -i "${input}"`];
-    explain.push([`-i "${input}"`, `Read the source file; -y overwrites ${output} if it exists.`]);
+    explain.push([`-i "${input}"`, F('Read the source file; -y overwrites {output} if it exists.', { output })]);
 
     parts.push(`-map 0:v:0`);
-    explain.push(['-map 0:v:0', 'Take the first video stream.']);
+    explain.push(['-map 0:v:0', T('Take the first video stream.')]);
 
     if(audio !== 'none'){
       parts.push('-map 0:a?');
-      explain.push(['-map 0:a?', 'Take all audio streams if any exist (? = don’t fail when there are none).']);
+      explain.push(['-map 0:a?', T('Take all audio streams if any exist (? = don’t fail when there are none).')]);
     }
     if(subs !== 'none'){
       parts.push('-map 0:s?');
-      explain.push(['-map 0:s?', 'Take all subtitle streams if any exist.']);
+      explain.push(['-map 0:s?', T('Take all subtitle streams if any exist.')]);
     }
 
     parts.push(`-c:v ${encoder}`);
     explain.push([`-c:v ${encoder}`, gpu === 'none'
-      ? `Encode video with the software ${codec.toUpperCase()} encoder — slowest but best quality per bit.`
-      : `Encode video on the ${gpu.toUpperCase()} hardware block — much faster, slightly larger files.`]);
+      ? F('Encode video with the software {codec} encoder — slowest but best quality per bit.', { codec: codec.toUpperCase() })
+      : F('Encode video on the {gpu} hardware block — much faster, slightly larger files.', { gpu: gpu.toUpperCase() })]);
 
     if(res !== 'original'){
       parts.push(`-vf scale=-2:${res}`);
-      explain.push([`-vf scale=-2:${res}`, `Downscale to ${res}p; -2 keeps the width even (required by most encoders) while preserving aspect ratio.`]);
+      explain.push([`-vf scale=-2:${res}`, F('Downscale to {res}p; -2 keeps the width even (required by most encoders) while preserving aspect ratio.', { res })]);
     }
 
     const [qf, qe] = qualityFlags(encoder, q);
@@ -2234,36 +2240,36 @@ const TranscodeTool = (() => {
     if(audio === 'copy'){
       if(container === 'webm'){
         parts.push('-c:a libopus -b:a 128k -af aformat=channel_layouts=stereo');
-        explain.push(['-c:a libopus …', 'WebM can’t carry most source audio codecs — re-encode to Opus 128k, downmixed to stereo (avoids the libopus channel-layout error).']);
+        explain.push(['-c:a libopus …', T('WebM can’t carry most source audio codecs — re-encode to Opus 128k, downmixed to stereo (avoids the libopus channel-layout error).')]);
       } else {
         parts.push('-c:a copy');
-        explain.push(['-c:a copy', 'Pass audio through untouched — no quality loss, no time spent.']);
+        explain.push(['-c:a copy', T('Pass audio through untouched — no quality loss, no time spent.')]);
       }
     } else if(audio === 'opus'){
       parts.push('-c:a libopus -b:a 128k -af aformat=channel_layouts=stereo');
-      explain.push(['-c:a libopus -b:a 128k', 'Re-encode audio to Opus at 128 kb/s, stereo.']);
+      explain.push(['-c:a libopus -b:a 128k', T('Re-encode audio to Opus at 128 kb/s, stereo.')]);
     } else if(audio === 'aac'){
       parts.push('-c:a aac -b:a 192k');
-      explain.push(['-c:a aac -b:a 192k', 'Re-encode audio to AAC at 192 kb/s.']);
+      explain.push(['-c:a aac -b:a 192k', T('Re-encode audio to AAC at 192 kb/s.')]);
     } else {
       parts.push('-an');
-      explain.push(['-an', 'Strip all audio.']);
+      explain.push(['-an', T('Strip all audio.')]);
     }
 
     if(subs === 'copy'){
       if(container === 'mp4'){
         parts.push('-c:s mov_text');
-        explain.push(['-c:s mov_text', 'MP4 only supports mov_text subtitles — text subs are converted, image subs will fail (use MKV for those).']);
+        explain.push(['-c:s mov_text', T('MP4 only supports mov_text subtitles — text subs are converted, image subs will fail (use MKV for those).')]);
       } else if(container === 'webm'){
         parts.push('-c:s webvtt');
-        explain.push(['-c:s webvtt', 'WebM only supports WebVTT subtitles — text subs are converted.']);
+        explain.push(['-c:s webvtt', T('WebM only supports WebVTT subtitles — text subs are converted.')]);
       } else {
         parts.push('-c:s copy');
-        explain.push(['-c:s copy', 'Pass subtitle streams through untouched (MKV accepts almost anything).']);
+        explain.push(['-c:s copy', T('Pass subtitle streams through untouched (MKV accepts almost anything).')]);
       }
     } else if(subs === 'none'){
       parts.push('-sn');
-      explain.push(['-sn', 'Strip all subtitles.']);
+      explain.push(['-sn', T('Strip all subtitles.')]);
     }
 
     let cmd;
@@ -2271,12 +2277,12 @@ const TranscodeTool = (() => {
     if(canTwoPass){
       const common = parts.slice(1).join(' ');
       cmd = `ffmpeg -y -i "${input}" ${common} -pass 1 -an -f null /dev/null && \\\nffmpeg -i "${input}" ${common} -pass 2 "${output}"`;
-      explain.push(['-pass 1/2', 'Two-pass: the first pass analyses the video (output discarded), the second uses that data for smarter bit allocation.']);
+      explain.push(['-pass 1/2', T('Two-pass: the first pass analyses the video (output discarded), the second uses that data for smarter bit allocation.')]);
     } else {
-      if(twopass) explain.push(['(two-pass)', 'Two-pass is only wired for software VP9/AV1 here — CRF single-pass is already optimal for the other encoders.']);
+      if(twopass) explain.push([T('(two-pass)'), T('Two-pass is only wired for software VP9/AV1 here — CRF single-pass is already optimal for the other encoders.')]);
       cmd = parts.join(' ') + ` "${output}"`;
     }
-    explain.push([`"${output}"`, `${container.toUpperCase()} container — the natural home for ${codec.toUpperCase()}.`]);
+    explain.push([`"${output}"`, F('{container} container — the natural home for {codec}.', { container: container.toUpperCase(), codec: codec.toUpperCase() })]);
     return { cmd, explain };
   }
 
@@ -2330,6 +2336,11 @@ const TranscodeTool = (() => {
   });
 
   render();
+  // The first render runs before i18n.js has loaded: redo it once the locale
+  // is set (after every DOMContentLoaded handler) and on each language switch.
+  document.addEventListener('DOMContentLoaded', () => setTimeout(render, 0));
+  // Defer past i18n.js's own langchange handler, which sets the new locale.
+  window.addEventListener('carino:langchange', () => setTimeout(render, 0));
 
   /* ---- audio → WAV (in-browser) ---- */
   let audioBuffer = null, audioName = 'audio';
@@ -2531,7 +2542,7 @@ const AutoTool = (() => {
     const info = await sniffFile(first);
     $('auto-name').textContent = files.length > 1 ? `${first.name} (+${files.length - 1} more)` : first.name;
     setWsFile(files.length > 1 ? `${first.name} +${files.length - 1}` : first.name);
-    $('auto-meta').textContent = `${info.label} · ${fmtBytes(files.reduce((s, f) => s + f.size, 0))}`;
+    $('auto-meta').textContent = `${T(info.label)}${info.detail ? ' (' + info.detail + ')' : ''} · ${fmtBytes(files.reduce((s, f) => s + f.size, 0))}`;
     $('auto-ico').textContent = ({ pdf: 'PDF', image: 'IMG', heic: 'HEIC', audio: 'AUD', video: 'VID', dicom: 'DCM' })[info.kind] || 'BIN';
     outcomes.innerHTML = '';
     resetPanels();
