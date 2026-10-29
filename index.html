@@ -385,6 +385,8 @@
     }
     :root[data-carino-theme="color"] .rcard:hover { box-shadow: var(--ct-shadow-2); }
     :root[data-carino-theme="color"] .cmd-block { color: var(--text); }
+    :root[data-carino-theme="color"] .explain-line code { color: var(--ct-purple); }
+    :root[data-carino-theme="color"] .file-chip .f-ico[class*="ct-cat-"] { background: var(--t); color: var(--tt); border-color: color-mix(in srgb, var(--c) 35%, transparent); }
   </style>
 </head>
 <body>
@@ -2647,6 +2649,7 @@ const AutoTool = (() => {
     setWsFile(files.length > 1 ? `${first.name} +${files.length - 1}` : first.name);
     $('auto-meta').textContent = `${T(info.label)}${info.detail ? ' (' + info.detail + ')' : ''} · ${fmtBytes(files.reduce((s, f) => s + f.size, 0))}`;
     $('auto-ico').textContent = ({ pdf: 'PDF', image: 'IMG', heic: 'HEIC', audio: 'AUD', video: 'VID', dicom: 'DCM' })[info.kind] || 'BIN';
+    $('auto-ico').className = 'f-ico ct-cat-' + ({ pdf: 'purple', image: 'pink', heic: 'pink', audio: 'amber', video: 'teal', dicom: 'blue' }[info.kind] || 'grey');
     outcomes.innerHTML = '';
     resetPanels();
     const add = (...a) => outcomes.appendChild(outcomeBtn(...a));
