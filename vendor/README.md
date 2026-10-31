@@ -18,6 +18,7 @@ than a package manager's.
 | `tessdata/*.traineddata.gz` | [tessdata](https://github.com/tesseract-ocr/tessdata) models (eng, spa, por), the OCR panel's **Best** model | Apache-2.0 | `tessdata/LICENSE` |
 | `tessdata/fast/*.traineddata.gz` | [tessdata_fast](https://github.com/tesseract-ocr/tessdata_fast) models (eng, spa, por; raw files from the `main` branch, gzipped with `gzip -9`), the OCR panel's **Fast** model (default) | Apache-2.0 | `tessdata/fast/LICENSE` |
 | `libheif/libheif-bundle.js` | [libheif](https://github.com/strukturag/libheif) + libde265, compiled to WASM | **LGPL-3.0** | `libheif/LICENSE` |
+| `mediabunny/mediabunny.min.mjs` | [Mediabunny](https://mediabunny.dev) 1.61.6 (unmodified npm bundle), the Transcode workspace's in-browser video conversion | MPL-2.0 | `mediabunny/LICENSE` |
 | `metadata/browser-id3-writer.min.js` | [browser-id3-writer](https://github.com/egoroof/browser-id3-writer) 4.4.0 | MIT | [`metadata/LICENSE-browser-id3-writer.txt`](metadata/LICENSE-browser-id3-writer.txt) |
 | `metadata/exifr-full.umd.js` | [exifr](https://github.com/MikeKovarik/exifr) | MIT | [`metadata/LICENSE-exifr.txt`](metadata/LICENSE-exifr.txt) |
 | `metadata/jsmediatags.min.js` | [jsmediatags](https://github.com/aadsm/jsmediatags) | BSD-3-Clause | [`metadata/LICENSE-jsmediatags.txt`](metadata/LICENSE-jsmediatags.txt) |

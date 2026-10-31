@@ -45,6 +45,7 @@ const NAMES = [
   'pemToDer', 'parseCertificate', 'x509Certificates', 'pkcs7Certificates',
   'jpegExifSpan',
   'buildFfmpegCommand', 'ffmpegQualityMax', 'shQuote', 'FFMPEG_HW_QMAX',
+  'convertPlan', 'convertQuality', 'convertSize', 'CONVERT_CODECS',
   'encodeWav', 'csvCell',
   'jpegStrip', 'jpegRemoveXmpGps', 'xmpDropGps', 'xmpHasGps', 'xmpGpsLeft', 'pngStrip', 'webpStrip', 'mp3Strip',
   'SCRUB_LABELS', '_jpegSegments', '_exifOrientation', '_jpegPrimaryEnd',

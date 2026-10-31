@@ -259,6 +259,82 @@ try {
   check(wout.length > 44 && wout.readUInt32LE(24) === 22050, 'Transcode: the exported WAV header rate is 22050', wout.length > 28 ? wout.readUInt32LE(24) : wout.length);
   await wv.close();
 
+  /* ── in-browser video conversion (Mediabunny over WebCodecs) ──
+     A 1 s 640×480 VP9 + Opus WebM is made in the page itself (no ffmpeg on
+     the runner), dropped on the Transcode zone, and converted twice: VP9 at
+     240p (resized, re-encoded) and, when this Chromium can encode it, AV1 in
+     MP4 with the audio stripped. showSaveFilePicker is removed so the result
+     comes back as a download rather than a dialog Playwright cannot answer. */
+  const cv = watch(await context.newPage(), 'convert');
+  await cv.goto(BASE + '?lang=en#transcode', { waitUntil: 'networkidle' });
+  const vB64 = await cv.evaluate(async () => {
+    delete window.showSaveFilePicker;
+    const mb = await import(new URL('vendor/mediabunny/mediabunny.min.mjs', location.href).href);
+    const canvas = new OffscreenCanvas(640, 480), g = canvas.getContext('2d');
+    const out = new mb.Output({ format: new mb.WebMOutputFormat(), target: new mb.BufferTarget() });
+    const vs = new mb.CanvasSource(canvas, { codec: 'vp9', bitrate: 800000 });
+    const as = new mb.AudioBufferSource({ codec: 'opus', bitrate: 64000 });
+    out.addVideoTrack(vs, { frameRate: 30 }); out.addAudioTrack(as);
+    await out.start();
+    for (let i = 0; i < 30; i++) {
+      g.fillStyle = "hsl(" + (i * 12) + " 70% 50%)"; g.fillRect(0, 0, 640, 480);
+      g.fillStyle = '#fff'; g.fillRect(i * 20, 200, 40, 40);
+      await vs.add(i / 30, 1 / 30);
+    }
+    const ab = new AudioBuffer({ length: 48000, sampleRate: 48000, numberOfChannels: 2 });
+    const ch = ab.getChannelData(0); for (let i = 0; i < ch.length; i++) ch[i] = Math.sin(i / 20) * 0.3;
+    await as.add(ab);
+    await out.finalize();
+    const b = new Uint8Array(out.target.buffer); let s = '';
+    for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    return btoa(s);
+  });
+  const vPath = path.join(tmp, 'clip.webm');
+  writeFileSync(vPath, Buffer.from(vB64, 'base64'));
+  await cv.setInputFiles('#wav-input', vPath);
+  ok = await cv.waitForFunction(() => document.querySelector('#cv-state').textContent === 'Ready' && !document.querySelector('#cv-run').disabled, null, { timeout: 15000 }).then(() => true, () => false);
+  check(ok && /640×480 · vp9/.test(await cv.textContent('#cv-info')) && (await cv.inputValue('#tc-input')) === 'clip.webm',
+    'Convert: a dropped WebM reads as 640×480 vp9, fills the file name, and enables Convert', await cv.textContent('#cv-info'));
+  // VP9 at 480p: the source is 480p already, so the note says it keeps its size.
+  await cv.click('label[for="tc-vp9"]'); await cv.click('label[for="tc-res-480"]');
+  ok = await cv.waitForFunction(() => /already 480p/.test(document.querySelector('#cv-notes').textContent), null, { timeout: 5000 }).then(() => true, () => false);
+  check(ok, 'Convert: asking 480p of a 480p video says it keeps its size', await cv.textContent('#cv-notes'));
+  // Read an output back: its first video track's size and codec, and whether it has audio.
+  const probe = (b64) => cv.evaluate(async (s) => {
+    const mb = await import(new URL('vendor/mediabunny/mediabunny.min.mjs', location.href).href);
+    const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    const input = new mb.Input({ source: new mb.BufferSource(u), formats: mb.ALL_FORMATS });
+    const v = await input.getPrimaryVideoTrack(), a = await input.getPrimaryAudioTrack();
+    const r = { w: v && v.displayWidth, h: v && v.displayHeight, codec: v && v.codec, audio: !!a, dur: await input.computeDuration() };
+    input.dispose(); return r;
+  }, b64);
+  // 240p VP9: resized and re-encoded, audio copied.
+  await cv.evaluate(() => {
+    // 240p is not on the rail; a smoke-only radio gives the planner its value.
+    const r = document.querySelector('#tc-res-480'); r.value = '240'; r.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  let [vdl] = await Promise.all([cv.waitForEvent('download', { timeout: 60000 }).catch(() => null), cv.click('#cv-run')]);
+  let vbuf = vdl ? readFileSync(await vdl.path()) : Buffer.alloc(0);
+  let vinfo = vbuf.length ? await probe(vbuf.toString('base64')) : null;
+  check(vdl && vdl.suggestedFilename() === 'clip_encoded.webm' && vbuf.readUInt32BE(0) === 0x1A45DFA3 && vinfo && vinfo.w === 320 && vinfo.h === 240 && vinfo.codec === 'vp9' && vinfo.audio && vinfo.dur > 0.8,
+    'Convert: VP9 at 240p downloads a 320×240 WebM with the audio kept', { name: vdl && vdl.suggestedFilename(), vinfo });
+  check(/Done/.test(await cv.textContent('#cv-state')) && /Downloaded clip_encoded\.webm/.test(await cv.textContent('#cv-notes')),
+    'Convert: the panel reports Done and the downloaded file', await cv.textContent('#cv-notes'));
+  // AV1 in MP4 with audio stripped, when this browser has an AV1 encoder.
+  await cv.evaluate(() => { const r = document.querySelector('#tc-res-480'); r.value = '480'; });
+  await cv.click('label[for="tc-res-orig"]'); await cv.click('label[for="tc-av1"]'); await cv.selectOption('#tc-audio', 'none');
+  await cv.waitForTimeout(300);
+  if (await cv.$eval('#cv-run', (b) => b.disabled)) {
+    check(/cannot encode AV1/.test(await cv.textContent('#cv-notes')), 'Convert: with no AV1 encoder, Convert is off and the note says why', await cv.textContent('#cv-notes'));
+  } else {
+    [vdl] = await Promise.all([cv.waitForEvent('download', { timeout: 90000 }).catch(() => null), cv.click('#cv-run')]);
+    vbuf = vdl ? readFileSync(await vdl.path()) : Buffer.alloc(0);
+    vinfo = vbuf.length ? await probe(vbuf.toString('base64')) : null;
+    check(vdl && vdl.suggestedFilename() === 'clip_encoded.mp4' && vbuf.toString('latin1', 4, 8) === 'ftyp' && vinfo && vinfo.codec === 'av1' && vinfo.w === 640 && !vinfo.audio,
+      'Convert: AV1 with audio stripped downloads a 640×480 MP4 with no audio track', { name: vdl && vdl.suggestedFilename(), vinfo });
+  }
+  await cv.close();
+
   const mf = watch(await context.newPage(), 'mdfields');
   await mf.goto(BASE + '?lang=en#metadata', { waitUntil: 'networkidle' });
   const pdfB64 = await mf.evaluate(async () => {

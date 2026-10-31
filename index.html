@@ -723,13 +723,13 @@
   <section class="tool" id="tool-transcode">
     <div class="ws ws-stack">
       <aside class="ws-rail">
-        <div id="wav-drop" class="dropzone" tabindex="0" role="button" aria-label="Drop an audio file">
+        <div id="wav-drop" class="dropzone" tabindex="0" role="button" aria-label="Drop an audio or video file">
           <div class="dz-icon">🎵</div>
-          <div class="d-title" data-i18n>Drop audio here</div>
-          <div class="dz-hint" data-i18n>MP3, M4A/AAC, OGG, FLAC, WebM… anything your browser can decode</div>
+          <div class="d-title" data-i18n>Drop audio or video here</div>
+          <div class="dz-hint" data-i18n>Audio converts to WAV; video converts here or gets an ffmpeg command</div>
         </div>
         <input type="file" id="wav-input" accept="audio/*,video/*" hidden>
-        <div class="t-label" data-i18n>Video → ffmpeg command</div>
+        <div class="t-label" data-i18n>Video settings</div>
         <div class="cg">
           <span class="cg-label" data-i18n>Input file name</span>
           <input class="input" type="text" id="tc-input" value="input.mkv" spellcheck="false">
@@ -797,6 +797,15 @@
           <span class="ws-file hidden"></span>
           <span class="pb-out"><button id="tc-copy" class="btn btn-primary" data-i18n>Copy</button></span>
         </div>
+        <div class="panel" id="cv-panel">
+          <div class="panel-head"><span class="panel-title" data-i18n>Convert in this browser</span><span class="badge" id="cv-state" data-i18n>No video</span></div>
+          <div class="panel-body">
+            <div id="cv-info" class="hint" data-i18n>Drop a video to convert it on this device with the codec, quality, size and audio set on the left. Nothing is uploaded. Subtitles are not carried over.</div>
+            <div class="bar" id="cv-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Conversion progress" hidden><div id="cv-bar"></div></div>
+            <ul id="cv-notes" class="hint cv-notes" hidden></ul>
+            <div class="cv-actions"><button id="cv-run" class="btn btn-primary" disabled data-i18n>Convert</button><button id="cv-cancel" class="btn" hidden data-i18n>Cancel</button></div>
+          </div>
+        </div>
         <div class="panel">
           <div class="panel-head"><span class="panel-title" data-i18n>Generated command</span></div>
           <div class="panel-body">
@@ -827,7 +836,7 @@
 <div data-carino-about hidden>
   <p data-i18n>Everything runs in your browser; files are never uploaded.</p>
   <p data-i18n>Works offline after your first visit.</p>
-  <p data-i18n>Bundled libraries: pdf.js, Tesseract.js and its Fast and Best language models (Apache-2.0), libheif (LGPL-3.0, shipped unmodified); for metadata, exifr, piexif, pdf-lib, opentype.js and browser-id3-writer (MIT) and jsmediatags (BSD-3-Clause). Each loads only when needed. Details in vendor/README.md.</p>
+  <p data-i18n>Bundled libraries: pdf.js, Tesseract.js and its Fast and Best language models (Apache-2.0), libheif (LGPL-3.0, shipped unmodified), Mediabunny (MPL-2.0); for metadata, exifr, piexif, pdf-lib, opentype.js and browser-id3-writer (MIT) and jsmediatags (BSD-3-Clause). Each loads only when needed. Details in vendor/README.md.</p>
   <p class="cn-ab-meta" data-i18n>Keyboard</p>
   <!-- Shortcuts (spec §19): ignored while typing in a field. -->
   <dl class="kbd-grid ab-keys">
@@ -859,6 +868,7 @@
 <script src="js/lib/range.js"></script>
 <script src="js/lib/pageops.js"></script>
 <script src="js/lib/ffmpeg.js"></script>
+<script src="js/lib/convert.js"></script>
 <script src="js/lib/wav.js"></script>
 <script src="js/lib/audiohead.js"></script>
 <script src="js/lib/eraser.js"></script>

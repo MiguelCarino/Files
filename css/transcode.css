@@ -1,5 +1,6 @@
 /* ─── Transcode specifics ─────────────────────────────────── */
 .tc-pane { display: flex; flex-direction: column; }
+.tc-pane .panel { flex-shrink: 0; }
 .tc-pane .panel + .panel { margin-top: 16px; }
 .cmd-block {
   background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px;
@@ -10,3 +11,9 @@
 .explain { display: flex; flex-direction: column; gap: 6px; }
 .explain-line { display: flex; gap: 8px; font-size: var(--fs-sm); color: var(--text-sec); }
 .explain-line code { color: var(--accent); flex-shrink: 0; font-size: var(--fs-sm); }
+/* In-browser conversion panel: one line of source info, the bar, short
+   notes, and a single Convert/Cancel button. */
+#cv-panel .panel-body { display: flex; flex-direction: column; gap: 10px; }
+.cv-notes { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.cv-notes[hidden], #cv-progress[hidden] { display: none; }
+.cv-actions { display: flex; gap: 8px; }
