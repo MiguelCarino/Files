@@ -2,4 +2,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://media.carino.systems/sitemap.xml
+Sitemap: https://files.carino.systems/sitemap.xml

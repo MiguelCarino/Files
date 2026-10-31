@@ -1,0 +1,8 @@
+{
+  "name": "files-smoke",
+  "private": true,
+  "type": "module",
+  "description": "One headless-Chromium smoke run over the real page (tests/smoke/run.sh). Not run in CI.",
+  "scripts": { "smoke": "./run.sh" },
+  "devDependencies": { "playwright": "1.61.1" }
+}

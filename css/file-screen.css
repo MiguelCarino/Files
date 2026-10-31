@@ -1,0 +1,245 @@
+/* ─── File: the screen every file lands on ────────────────── */
+/* Empty, the pane is the short hero and holds the dropzone; once a file
+   lands the dropzone moves to the top of the rail, beside the result. */
+.auto-stage:not(.loaded) > .ws-rail { display: none; }
+.auto-stage.loaded #auto-hero { display: none; }
+.short-hero .sh-lede .privacy-line { margin-top: 10px; }
+.auto-drop { padding: 38px 20px; flex-shrink: 0; transition: padding 0.15s; }
+/* Once a file is loaded the dropzone stops competing with the result for
+   space — it still takes a drop or another paste. */
+.auto-stage.loaded .auto-drop { padding: 12px 16px; }
+.auto-stage.loaded .auto-drop .dz-icon,
+.auto-stage.loaded .auto-drop .dz-hint { display: none; }
+.auto-stage.loaded .auto-drop .d-title { font-size: var(--fs-sm); }
+#auto-result { display: flex; flex-direction: column; gap: 12px; }
+.auto-outcomes { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.oc-card {
+  text-align: left; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 13px 14px; cursor: pointer; transition: 0.15s;
+  font-family: inherit; color: var(--text);
+  /* A button centres its content by default: in a row of cards of uneven
+     length the short ones floated mid-height. Titles share one line. */
+  display: flex; flex-direction: column; justify-content: flex-start;
+}
+.oc-card:hover { border-color: var(--accent); background: var(--accent-faint); }
+.oc-card .oc-t { font-weight: 800; font-size: var(--fs-sec); display: flex; gap: 8px; align-items: center; }
+.oc-card .oc-d { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 4px; line-height: 1.45; }
+/* Each outcome answers to its ordinal, so a paste can be resolved from the
+   keyboard without reaching for the mouse. */
+.oc-card .oc-n {
+  margin-left: auto; font-family: var(--mono); font-size: var(--fs-label); font-weight: 700;
+  color: var(--accent); background: var(--accent-faint); border: 1px solid var(--accent-dim);
+  border-radius: 4px; padding: 1px 6px; line-height: 1.5;
+}
+/* What you pasted, shown as itself rather than as a file name. */
+.auto-preview {
+  display: grid; place-items: center; background: var(--bg-elev);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px; min-height: 0;
+}
+.auto-preview img { max-width: 100%; max-height: min(400px, 40vh); object-fit: contain; border-radius: 4px; display: block; }
+/* Inline OCR result — the payoff of running it on paste. */
+.auto-ocr { display: flex; flex-direction: column; gap: 8px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.auto-ocr .ao-head { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: var(--fs-sec); }
+.auto-ocr .ao-head .badge { margin-left: auto; }
+.auto-ocr pre {
+  margin: 0; max-height: 190px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+  font-family: var(--mono); font-size: var(--fs-sm); line-height: 1.5; color: var(--text-sec);
+}
+.auto-ocr .ao-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Conversion settings sit in the rail, one group per row. */
+.auto-conv .ac-row { display: flex; flex-direction: column; gap: 12px; }
+.auto-conv .seg label { padding: 5px 8px; font-size: var(--fs-sm); }
+.auto-conv .cg { gap: 5px; }
+.auto-conv .badge:empty { display: none; }
+.view-acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* Leafing through a PDF on the file screen: renders on demand, so it works
+   before, during and after a conversion. */
+.pdf-pager { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; min-width: 0; }
+.pdf-pager input[type=range] { flex: 1; min-width: 80px; accent-color: var(--accent); }
+.pdf-pager .pp-n { font-family: var(--mono); font-size: var(--fs-label); color: var(--text-sec); white-space: nowrap; min-width: 9ch; text-align: center; }
+/* The recogniser's own controls, on the file screen. */
+.ocr-ctl { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.ocr-ctl .select { width: auto; flex: 0 1 240px; min-width: 120px; padding: 6px 9px; }
+/* The quiet OCR settings (spec §7.2): a closed <details> whose summary is a
+   .cs-btn with its caret; model, inversion and rotation inside. */
+.ocr-opts > summary { list-style: none; width: max-content; max-width: 100%; }
+.ocr-opts > summary::-webkit-details-marker { display: none; }
+.ocr-opts > summary::marker { content: ''; }
+.ocr-opts > summary .cs-caret { display: inline-block; transition: transform 0.15s; }
+.ocr-opts[open] > summary { border-color: var(--accent); color: var(--accent); }
+.ocr-opts[open] > summary .cs-caret { transform: rotate(180deg); }
+.ocr-opts-body { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elev); }
+.ocr-model { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.ocr-model .seg { flex: 0 0 auto; }
+.ocr-model .seg label { padding: 4px 12px; }
+.ocr-model .hint { flex: 1 1 100%; }
+.ocr-opts .tgl-row .tgl-lbl { cursor: pointer; }
+.ocr-rot { display: flex; align-items: center; gap: 8px; }
+@media (prefers-reduced-motion: reduce) { .ocr-opts > summary .cs-caret { transition: none; } }
+/* Rendered pages: a scrolling strip, not a page-long grid. */
+/* max-content rows: with a max-height the grid otherwise squeezes every
+   (overflow:hidden, so min-height 0) card to fit that height. */
+#pdf-grid { max-height: min(520px, 62vh); overflow-y: auto; grid-auto-rows: max-content; align-content: start; }
+
+/* the hero mark in both colourings; the theme picks one */
+.short-hero .mark.mk-color, :root[data-carino-theme="color"] .short-hero .mark.mk-gold { display: none; }
+:root[data-carino-theme="color"] .short-hero .mark.mk-color { display: block; }
+
+/* Metadata policy on conversion (Convert panel and the Images rail). */
+.meta-policy .meta-gps { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.meta-policy .meta-gps input { accent-color: var(--accent); margin: 0; }
+.rcard .rmeta .meta-badge:empty { display: none; }
+
+/* Clean copy report (#auto-scrub). */
+#auto-scrub .scrub-list { margin: 0; padding-left: 1.2em; font-size: var(--fs-sm); color: var(--text-sec); line-height: 1.6; }
+#auto-scrub .scrub-file { margin: 0; font-family: var(--mono); font-size: var(--fs-label); color: var(--text-muted); word-break: break-all; }
+#auto-scrub .scrub-ok { margin: 0; font-family: var(--mono); font-size: var(--fs-label); color: var(--text-muted); }
+
+/* The alert line (#auto-alert): a name that lies, a photo that says where it
+   was taken. Branding .alert warn, one <p> per advisory. */
+#auto-alert { margin: 0; }
+#auto-alert p { margin: 0; }
+#auto-alert p + p { margin-top: 4px; }
+
+/* Outcome cards past the cap wait behind the last tile, "More (k)": the same
+   card, title only. Ordinals stop at 9. */
+.oc-card .oc-n:empty { display: none; }
+.oc-card.oc-more { flex-direction: row; align-items: center; grid-column: 1 / -1; padding-top: 7px; padding-bottom: 7px; }
+.oc-card.oc-more .oc-t { flex: 1; color: var(--text-sec); font-family: var(--mono); font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.oc-card.oc-more:hover .oc-t { color: var(--accent); }
+
+/* Convert / Pages to images: a <details> whose head is the panel's .ao-head.
+   Above 640px it stays open and the head is only a heading (no marker, no
+   caret, no values); css/responsive.css turns it into the fold's button. */
+.rail-fold > summary { list-style: none; cursor: default; }
+.rail-fold > summary::-webkit-details-marker { display: none; }
+.rail-fold > summary::marker { content: ''; }
+.rail-fold > summary:focus:not(:focus-visible) { outline: none; }
+.rail-fold .rs-vals, .rail-fold .cs-caret { display: none; }
+.rail-fold-body { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+
+/* ─── the set view (spec §9): several files at once ───
+   The rail is the dropzone (Add files) and one summary chip; the pane is the
+   set cards, then the tray, then the bulk report. Everything that belongs to
+   one file is off while the set is on screen. */
+.auto-stage.set #auto-conv, .auto-stage.set #auto-pdf,
+.auto-stage.set #auto-alert, .auto-stage.set #auto-preview, .auto-stage.set #auto-view-acts,
+.auto-stage.set #auto-ocr, .auto-stage.set #pdf-grid, .auto-stage.set #auto-details { display: none; }
+/* The tray: one .file-chip per file, scrolling inside itself. The row body
+   is a button (opens the file); ✕ removes it from the set. */
+.auto-tray { display: flex; flex-direction: column; gap: 6px; max-height: min(360px, 50vh); overflow: auto; padding: 2px; }
+.auto-tray .file-chip { padding: 0 4px 0 0; gap: 4px; flex-shrink: 0; }
+.auto-tray .tray-open {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  background: none; border: 0; border-radius: 8px; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.auto-tray .tray-open:hover .f-name { color: var(--accent); }
+.auto-tray .tray-open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.auto-tray .file-chip .f-ico { width: 32px; height: 32px; }
+.auto-tray .f-info, .auto-tray .f-name, .auto-tray .f-meta { display: block; }
+.auto-tray .f-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.auto-tray .tray-warn { color: var(--warn); }
+.auto-tray .tray-ok { color: var(--ok); }
+.auto-tray .tray-err { color: var(--err); }
+
+/* ─── Verify (spec §8): a chip after the SHA-256, one row under the grid ─── */
+.badge.ok  { border-color: var(--ok); color: var(--ok); }
+.badge.err { border-color: var(--err); color: var(--err); }
+#auto-details .fd-grid dd .fd-verify-chip { margin-left: 6px; display: inline-block; white-space: nowrap; word-break: normal; vertical-align: 1px; }
+#auto-details .fd-verify { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+#auto-details .fd-verify .input { flex: 1 1 260px; min-width: 0; font-family: var(--mono); font-size: var(--fs-label); }
+#auto-details .fd-verify-out { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#auto-details .fd-verify-out:empty { display: none; }
+#auto-details .fd-verify-bar { width: 120px; }
+
+/* ─── Compare (spec §11): two slots in the rail, the verdict and the table ─── */
+.cmp-slot { display: flex; flex-direction: column; gap: 6px; }
+.cmp-slot .t-label { margin-top: 0; }
+.cmp-drop { padding: 12px 14px; font-size: var(--fs-sm); text-align: center; }
+.cmp-swap { align-self: center; }
+#cmp-verdict { margin: 0 0 12px; }
+.cmp-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.cmp-tools .seg { flex: 0 0 auto; }
+.cmp-tools .seg label { padding: 5px 12px; }
+.cmp-table { table-layout: fixed; }
+.cmp-table thead th:first-child { width: 28%; }
+.cmp-table td { vertical-align: top; overflow-wrap: anywhere; word-break: break-word; }
+.cmp-table td.cmp-v { font-family: var(--mono); color: var(--text-sec); }
+.cmp-table td .hint { font-size: inherit; }
+.cmp-table tr.diff td { background: var(--accent-faint); }
+.cmp-table .cmp-ne { color: var(--accent); font-weight: 700; margin-right: 6px; }
+.cmp-table tr.cmp-group th { padding-top: 14px; }
+.cmp-table tr.cmp-group:first-child th { padding-top: 8px; }
+/* A phone stacks each row: the field, then an "A" line and a "B" line. */
+@media (max-width: 640px) {
+  .cmp-table thead { display: none; }
+  .cmp-table, .cmp-table tbody, .cmp-table tr, .cmp-table td, .cmp-table th { display: block; width: auto; }
+  .cmp-table tr:not(.cmp-group) { border-bottom: 1px solid var(--border); padding: 6px 0; }
+  .cmp-table td { border-bottom: 0; padding: 2px 10px; }
+  .cmp-table td[data-side] { display: flex; gap: 8px; }
+  .cmp-table td[data-side]::before { content: attr(data-side); flex: 0 0 2ch; font-weight: 700; color: var(--text-muted); }
+  .cmp-table tr.cmp-group th { padding: 12px 10px 4px; border-bottom: 1px solid var(--border); }
+}
+
+/* Clean copy report: the lines past the sixth fold behind "+{k} more". */
+#auto-scrub .scrub-more { margin: 2px 0 0 1.2em; }
+#auto-scrub .scrub-list li:focus { outline: none; }
+
+/* ─── Pages mode (#file/pages, spec §10) ───
+   Split is the OCR panel's quiet disclosure (.ocr-opts). The grid is the
+   result grid at 140px, so a phone gets two columns; a selected page has
+   the accent border, a pending rotation turns its thumbnail. */
+.pg-sources { display: flex; flex-direction: column; gap: 6px; }
+.pg-drop { padding: 12px 14px; text-align: center; }
+.pg-split .input { font-family: var(--mono); }
+.pg-sel { margin-bottom: 12px; }
+.pg-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.pg-card { cursor: pointer; user-select: none; position: relative; }
+.pg-card .thumb { height: 170px; }
+.pg-card .thumb img { transition: transform 0.15s; background: #fff; }
+.pg-card .rbody { padding: 6px 10px; }
+.pg-card.pg-on { border-color: var(--accent); background: var(--accent-faint); }
+.pg-card.pg-on .rmeta .chip { background: var(--accent); color: #050505; }
+.pg-card.pg-drag { opacity: 0.45; }
+.pg-card.pg-before { box-shadow: -3px 0 0 var(--accent); }
+.pg-card.pg-after { box-shadow: 3px 0 0 var(--accent); }
+#pg-none { margin-top: 4px; }
+#pg-status:empty { display: none; }
+#pg-status { margin-top: 10px; }
+#tool-pages .ws-pane > .short-hero { min-height: calc(100% - 60px); justify-content: center; }
+@media (prefers-reduced-motion: reduce) { .pg-card .thumb img { transition: none; } }
+@media (max-width: 640px) {
+  .pg-card .thumb { height: 140px; }
+  /* The selection row stays under the sticky pane-bar (its height comes
+     from js/ws/pages.js, which watches the bar wrap). */
+  .tool.active .pg-sel {
+    position: sticky; top: var(--pg-bar-h, 96px); z-index: 29; background: var(--bg);
+    margin: 0 -12px 12px; padding: 6px 12px; border-bottom: 1px solid var(--border);
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+  }
+  .pg-sel::-webkit-scrollbar { display: none; }
+  .pg-sel > * { flex-shrink: 0; white-space: nowrap; }
+}
+
+/* ─── Redact mode (#file/redact, spec §12) ───
+   The rail: the compact dropzone, Find text, the boxes row and its hints.
+   The picture sits in the signature canvas-wrapper, sized from JS to the
+   pane's width and 70vh; the canvas takes every touch (no page pan while
+   drawing), the wrapper around it still scrolls. */
+.rd-drop { padding: 12px 14px; text-align: center; }
+.rd-panel { display: flex; flex-direction: column; gap: 16px; }
+.rd-sec { display: flex; flex-direction: column; gap: 6px; }
+.rd-sec .t-label { margin-top: 0; }
+.rd-sec .hint { margin: 0; }
+.rd-find { display: flex; gap: 6px; }
+.rd-find .input { flex: 1; min-width: 0; }
+.rd-found, .rd-boxes { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.rd-boxes .badge { margin-right: auto; }
+#rd-find-hint:empty { display: none; }
+#rd-stage { flex: none; height: auto; min-height: 0; max-height: 70vh; }
+.rd-canvas { display: block; touch-action: none; cursor: crosshair; }
+.rd-canvas:focus { outline: none; }
+.rd-canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+#rd-status { margin-top: 10px; }
+#rd-status:empty { display: none; }
+#tool-redact .ws-pane > .short-hero { min-height: calc(100% - 60px); justify-content: center; }

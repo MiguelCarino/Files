@@ -1,0 +1,81 @@
+/* ─── small screens ───────────────────────────────────────
+   The shell is a fixed-height flex column, so mobile needs a viewport
+   unit that survives the collapsing address bar and controls big enough
+   to hit with a thumb. */
+@supports (height: 100dvh) { html, body { height: 100dvh; } }
+
+@media (max-width: 640px) {
+  .ws-pane { padding: 14px 12px; }
+  .short-hero { padding: 20px 4px; }
+  .auto-drop { padding: 22px 14px; }
+  .auto-preview { padding: 6px; }
+  .auto-preview img { max-height: min(240px, 34vh); }
+  .auto-ocr pre { max-height: 150px; }
+  .auto-ocr, .auto-conv { padding: 11px 12px; }
+  .ws-file { max-width: 22ch; }
+  .oc-card { padding: 11px 12px; }
+  /* 16px is the threshold under which iOS zooms the page on focus. */
+  .input, .select { font-size: 16px; }
+}
+
+/* Touch targets. Stated as a minimum height rather than as padding so the
+   compact overrides elsewhere (which are more specific, and would win) can
+   not shrink a control below the thumb-sized floor. */
+@media (pointer: coarse) {
+  .btn, .btn-sm, .seg label, .auto-conv .seg label {
+    min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  }
+  .input, .select { min-height: 44px; }
+  .ocr-opts > summary { min-height: 44px; }
+  input[type="range"] { height: 44px; }
+  .file-chip .f-x { min-width: 44px; min-height: 44px; font-size: 1.05rem; }
+  .oc-card, .dropzone { -webkit-tap-highlight-color: transparent; }
+}
+
+/* ─── phone (≤ 640px), spec §3.6 / §5.2 ─── */
+@media (max-width: 640px) {
+  /* The pane-bar stays on screen while the module scrolls. The module
+     (.tool.active) is the scroller here, under the navbar and the slice bar,
+     so 0 is its top (the page itself never scrolls: --nav-h is not needed). */
+  .tool.active .pane-bar {
+    position: sticky; top: 0; z-index: 30; background: var(--bg);
+    margin: -14px -12px 14px; padding: 10px 12px; row-gap: 8px;
+  }
+  /* Two rows at most: title, file and chips; then the outputs, full width,
+     the primary taking the room. No outputs on show, no second row. */
+  .pane-bar .ws-file { flex: 1 1 0; min-width: 4ch; }
+  .pane-bar .same-file { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .pane-bar .same-file::-webkit-scrollbar { display: none; }
+  .pane-bar .same-file .chip-tag { flex-shrink: 0; white-space: nowrap; }
+  .pb-out { flex: 1 0 100%; margin-left: 0; flex-wrap: nowrap; }
+  .pb-out .btn-primary { flex: 1; justify-content: center; }
+  /* Only Export (Compare, the set view): it stays on the first row, at its
+     end, instead of a second row of its own. */
+  .pb-out:not(:has(> .btn-primary:not(.hidden))) { flex: 0 0 auto; margin-left: auto; }
+  .pb-out:not(:has(> :not(.hidden):not([hidden]))) { display: none; }
+
+  /* The rail panels fold: the head is a button reading the panel's title and
+     its values, with the caret of a .cs-btn. */
+  .auto-ocr .rail-fold > summary.ao-head {
+    cursor: pointer; min-height: 32px; min-width: 0;
+    font-family: var(--mono); font-size: var(--fs-label); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-sec);
+  }
+  .auto-ocr .rail-fold > summary.ao-head:hover { color: var(--accent); }
+  .rail-fold .rs-vals { display: block; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: none; font-weight: 600; color: var(--text-muted); }
+  .rail-fold .cs-caret { display: inline; transition: transform 0.15s; }
+  .rail-fold[open] .cs-caret { transform: rotate(180deg); }
+  /* Folded, the head is title and values only; the status badge waits inside. */
+  .rail-fold:not([open]) > .ao-head .badge { display: none; }
+  .auto-ocr .rail-fold > .ao-head .badge { margin-left: 0; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
+}
+@media (max-width: 640px) and (prefers-reduced-motion: reduce) { .rail-fold .cs-caret { transition: none; } }
+@media (max-width: 640px) and (pointer: coarse) { .auto-ocr .rail-fold > summary.ao-head { min-height: 44px; } }
+
+/* The tray on a phone: one line per row, the name ellipsised (spec §18). */
+@media (max-width: 640px) {
+  .auto-tray .tray-open { padding: 6px 8px; gap: 8px; }
+  .auto-tray .f-info { display: flex; align-items: baseline; gap: 8px; }
+  .auto-tray .f-name { flex: 1 1 auto; min-width: 0; }
+  .auto-tray .f-meta { flex: 0 1 auto; max-width: 55%; }
+}

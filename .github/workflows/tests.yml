@@ -1,0 +1,22 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # The pure js/lib modules, i18n coverage and the script wiring. The
+      # files are named explicitly (the shell expands the glob), so Node 20,
+      # which does not resolve a folder argument the way 22 does, runs the
+      # same set. The Playwright smoke run (tests/smoke/run.sh) is local only.
+      - run: node --test --test-concurrency=1 tests/*.test.mjs

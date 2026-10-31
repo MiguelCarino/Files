@@ -1,0 +1,25 @@
+/* Colourful: carino-theme.css remaps the tokens, so everything that reads
+   one follows; these are the values above that were written for black. */
+:root[data-carino-theme="color"] body { background-image: var(--stage-grad); }
+:root[data-carino-theme="color"] ::selection { color: var(--ct-on-accent); }
+:root[data-carino-theme="color"] .seg input:checked + label,
+:root[data-carino-theme="color"] .seg input:checked + label:hover { color: var(--ct-on-accent); }
+:root[data-carino-theme="color"] .ws-file,
+:root[data-carino-theme="color"] .sig-cg { background: var(--bg-elev); }
+:root[data-carino-theme="color"] .panel { box-shadow: var(--ct-shadow-1); }
+:root[data-carino-theme="color"] .panel-head { background: none; }
+:root[data-carino-theme="color"] .btn-danger { border-color: var(--err); color: var(--err); }
+:root[data-carino-theme="color"] .btn-danger:hover { background: var(--err); border-color: var(--err); color: var(--ct-on-accent); }
+:root[data-carino-theme="color"] .rcard .thumb {
+  background-color: var(--bg-elev);
+  background-image: linear-gradient(45deg,var(--border) 25%,transparent 25%), linear-gradient(-45deg,var(--border) 25%,transparent 25%), linear-gradient(45deg,transparent 75%,var(--border) 75%), linear-gradient(-45deg,transparent 75%,var(--border) 75%);
+}
+:root[data-carino-theme="color"] .rcard:hover { box-shadow: var(--ct-shadow-2); }
+:root[data-carino-theme="color"] .cmd-block { color: var(--text); }
+:root[data-carino-theme="color"] .explain-line code { color: var(--ct-purple); }
+:root[data-carino-theme="color"] .file-chip .f-ico[class*="ct-cat-"] { background: var(--t); color: var(--tt); border-color: color-mix(in srgb, var(--c) 35%, transparent); }
+/* Metadata: the values its sheet wrote for black. */
+:root[data-carino-theme="color"] #tool-metadata .dirty-bar { box-shadow: var(--ct-shadow-2); }
+:root[data-carino-theme="color"] :is(#tool-auto, #tool-metadata) .file-details { box-shadow: var(--ct-shadow-1); }
+/* group kickers: one identity hue, no positional cycle (groups hide during search, which would shift it) */
+:root[data-carino-theme="color"] #tool-metadata #md-groups .meta-group h3 { color: var(--ct-purple); }

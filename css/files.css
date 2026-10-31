@@ -1,0 +1,213 @@
+/* Tokens, base and the shared components come from carino-ui.css
+   (Branding), linked above; these sheets only add Files' own pieces. */
+::selection { background: var(--accent); color: #050505; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+/* The shell is a fixed-height column: navbar, the module bar, then the
+   open module, which scrolls inside itself. */
+html, body { height: 100%; }
+body { line-height: 1.55; display: flex; flex-direction: column; overflow: hidden; }
+.slice-menu { flex-shrink: 0; }
+
+/* ─── Module top bar: name + file on the left, files out at the right end ── */
+.pane-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex-shrink: 0; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+.pane-title { font-family: var(--display); font-weight: 900; font-size: var(--fs-lg); text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); }
+/* Focused by showTool() so a screen reader says where it landed; no ring for
+   that. It is a heading (tabindex -1, never a Tab stop), so no ring at all:
+   after a drop Chromium treats the programmatic focus as focus-visible. */
+.pane-title:focus { outline: none; }
+/* "Same file:": the file on the file screen, one click into another workspace. */
+.same-file { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.same-file.hidden { display: none; }
+.same-file .sf-label { white-space: nowrap; font-family: var(--mono); font-size: var(--fs-micro); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.pb-out { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* Every pane-bar is as tall as one with a primary button, so the rule under
+   it sits at the same height on every screen (Compare and the set view have
+   only Export). */
+.pane-bar { min-height: 51px; }
+.ws-file {
+  font-family: var(--mono); font-size: var(--fs-label); color: var(--text-sec);
+  border: 1px solid var(--border); background: rgba(255,255,255,0.03);
+  padding: 3px 9px; border-radius: 999px; max-width: 44ch;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ─── Modules: every one is the same workspace (carino-ui.css .ws) ─── */
+main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; }
+.tool { display: none; }
+.tool.active { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.tool > .ws { flex: 1; min-height: 0; }
+.ws-rail .t-label { margin-top: 4px; }
+/* Below 900px the rail stacks above the pane (carino-ui.css .ws-stack): it
+   holds the module's input, so the module scrolls as one column. */
+@media (max-width: 900px) {
+  .tool.active { overflow-y: auto; }
+  .tool > .ws { flex: none; }
+}
+
+.panel {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.panel-head {
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.02), transparent);
+}
+.panel-title {
+  font-family: var(--mono); font-size: var(--fs-btn); font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-sec);
+}
+.panel-body { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+
+.badge {
+  padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border);
+  font-family: var(--mono); font-size: var(--fs-label); font-weight: 600;
+  letter-spacing: 0.04em; color: var(--text); background: rgba(255,255,255,0.03);
+  white-space: nowrap;
+}
+.badge.low  { border-color: var(--err); color: var(--err); }
+.badge.med  { border-color: var(--warn); color: var(--warn); }
+.badge.high { border-color: var(--ok); color: var(--ok); }
+
+/* ─── Controls ────────────────────────────────────────────── */
+.cg { display: flex; flex-direction: column; gap: 8px; }
+.cg-label {
+  font-family: var(--mono); font-size: var(--fs-label); font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted);
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+}
+.cg-label .val { color: var(--accent); font-size: var(--fs-label); }
+
+.seg { display: flex; background: var(--bg-elev); border: 1px solid var(--border); padding: 3px; border-radius: 8px; gap: 3px; flex-wrap: wrap; }
+.seg input { display: none; }
+.seg label {
+  flex: 1; text-align: center; padding: 7px 8px; font-size: var(--fs-sm); font-weight: 600;
+  border-radius: 6px; cursor: pointer; color: var(--text-sec); transition: 0.15s;
+  user-select: none; white-space: nowrap;
+}
+.seg input:checked + label { background: var(--accent); color: #050505; font-weight: 700; }
+.seg label:hover { color: var(--text); }
+.seg input:checked + label:hover { color: #050505; }
+
+/* Text fields and selects are Branding's .input / .select. */
+input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+input[type="color"] { width: 40px; height: 30px; padding: 2px; border: 1px solid var(--border); background: var(--bg-elev); border-radius: 6px; cursor: pointer; }
+
+/* Buttons are Branding's .btn / .btn-primary; these two are Files' own sizes. */
+.btn-danger { border-color: #7f1d1d; color: #fca5a5; }
+.btn-danger:hover { background: #7f1d1d; border-color: #991b1b; color: #fff; }
+.btn-sm { height: 32px; padding: 0 10px; font-size: var(--fs-label); }
+.btn:disabled { cursor: not-allowed; }
+
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-row .grow { flex: 1; justify-content: center; }
+
+.tgl-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tgl-lbl { font-size: var(--fs-sm); font-weight: 500; }
+.tgl-sub { font-size: var(--fs-label); color: var(--text-muted); }
+
+.hint { font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.5; }
+.hint b { color: var(--accent); font-weight: 600; }
+
+/* ─── Dropzones (Branding .dropzone) ──────────────────────── */
+.dropzone { padding: 20px 16px; }
+.dropzone .d-title { font-weight: 700; color: var(--text); }
+
+.file-chip {
+  display: flex; align-items: center; gap: 10px; background: var(--bg-elev);
+  padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+}
+.file-chip .f-ico {
+  width: 36px; height: 36px; flex-shrink: 0; background: var(--accent-faint);
+  color: var(--accent); border: 1px solid var(--accent-dim); border-radius: 6px;
+  display: grid; place-items: center; font-family: var(--mono); font-weight: 700; font-size: var(--fs-micro);
+}
+.file-chip .f-info { flex: 1; min-width: 0; }
+.file-chip .f-name { font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-chip .f-meta { font-size: var(--fs-label); color: var(--text-muted); font-family: var(--mono); }
+.file-chip .f-x { background: none; border: none; color: var(--err); cursor: pointer; padding: 6px; font-size: var(--fs-sec); }
+
+/* ─── Progress ────────────────────────────────────────────── */
+.bar { height: 8px; border-radius: 999px; background: var(--bg-elev); border: 1px solid var(--border); overflow: hidden; }
+.bar > div { height: 100%; width: 0%; background: var(--accent); transition: width 0.15s linear; }
+.status-line { font-family: var(--mono); font-size: var(--fs-btn); color: var(--text-sec); min-height: 1.2em; }
+
+/* ─── Result grids (PDF pages / images) ───────────────────── */
+.result-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.rcard { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; transition: border-color 0.15s; }
+.rcard:hover { border-color: var(--accent-dim); }
+.rcard .thumb {
+  height: 150px; display: grid; place-items: center; overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  background-image: linear-gradient(45deg,#161616 25%,transparent 25%), linear-gradient(-45deg,#161616 25%,transparent 25%), linear-gradient(45deg,transparent 75%,#161616 75%), linear-gradient(-45deg,transparent 75%,#161616 75%);
+  background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-color: #101010;
+}
+#pdf-grid .rcard .thumb { cursor: zoom-in; }
+.rcard .thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.rcard .rbody { padding: 10px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.rcard .rmeta { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-family: var(--mono); font-size: var(--fs-label); color: var(--text-muted); }
+.rcard .rmeta .chip { color: var(--accent); border: 1px solid var(--accent-dim); background: var(--accent-faint); padding: 1px 6px; border-radius: 4px; font-weight: 700; }
+
+.empty-state {
+  text-align: center; padding: 56px 20px; color: var(--text-muted);
+  border: 2px dashed var(--border); border-radius: var(--radius);
+}
+.empty-state h3 { margin: 0 0 4px; font-family: var(--display); color: var(--text-sec); }
+.empty-state p { margin: 0; font-size: var(--fs-sm); }
+
+.hidden { display: none !important; }
+
+/* Inverting the view flips the render you are actually looking at, since
+   the file screen's preview is the image the recogniser reads. */
+#auto-thumb.inverted { filter: invert(1) hue-rotate(180deg); }
+
+/* The About popup's keyboard legend (Branding .kbd-grid, in carino-ui.css).
+   The popup centres its text; the legend reads as a two-column list, kept
+   no wider than its content, and its key caps sit on one line. */
+.cn-ab-page .ab-keys { width: max-content; max-width: 100%; margin: 4px auto 0; text-align: left; gap: 6px 12px; }
+.cn-ab-page .ab-keys dd { font-size: var(--fs-label); line-height: 1.4; }
+@media (max-width: 640px) {
+  .cn-ab-page .ab-keys { grid-template-columns: 1fr; gap: 2px; }
+  .cn-ab-page .ab-keys dd { margin-bottom: 6px; }
+}
+
+/* The toast (carino-ui.css) drops in at the navbar's foot, over the slice
+   bar's labels; here it lands under the slice bar instead. */
+#toast { top: 116px; }
+
+/* Once a workspace holds files its rail dropzone shrinks to a one-line "add
+   more" target, as on the file screen: the files and the settings take the
+   room, the drop still works. */
+#tool-images:has(#img-empty.hidden) #img-drop,
+#tool-signature:has(#sig-emptyhint.hidden) #sig-drop { padding: 12px 16px; }
+#tool-images:has(#img-empty.hidden) #img-drop :is(.dz-icon, .dz-hint),
+#tool-signature:has(#sig-emptyhint.hidden) #sig-drop .dz-hint { display: none; }
+#tool-images:has(#img-empty.hidden) #img-drop .d-title,
+#tool-signature:has(#sig-emptyhint.hidden) #sig-drop .d-title { font-size: var(--fs-sm); }
+
+@media (max-width: 900px) {
+  /* Signature, stacked: the picture first, the controls under it. The pane
+     has its own drop target (and + in the strip), so the rail's goes. */
+  #tool-signature .ws.ws-stack > .ws-pane { order: -1; }
+  #tool-signature #sig-drop { display: none; }
+}
+@media (max-width: 640px) {
+  /* Stacked on a phone the rail's privacy footer lands mid-page between the
+     controls and the result; the hero and the About popup still say it. */
+  .ws.ws-stack .ws-rail-foot { display: none; }
+}
+
+/* Above the phone width the pane-bar is one row: when "Same file:" and a
+   long language do not fit, the chips scroll sideways (as on a phone) and
+   the file name ellipsises, instead of the outputs wrapping to a second row. */
+@media (min-width: 641px) {
+  .pane-bar { flex-wrap: nowrap; }
+  .pane-bar > :is(.pane-title, .badge, .chip-tag, .pb-out) { flex-shrink: 0; }
+  .pane-bar > .ws-file { flex-shrink: 1; min-width: 6ch; }
+  .pane-bar > .pb-out { flex-wrap: nowrap; }
+  .pane-bar > .same-file { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .pane-bar > .same-file::-webkit-scrollbar { display: none; }
+  .pane-bar > .same-file > * { flex-shrink: 0; white-space: nowrap; }
+}

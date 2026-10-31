@@ -1,0 +1,47 @@
+/* ─── Signature: the canvas fills the pane, the controls are the rail ── */
+.sig-pane { display: flex; flex-direction: column; }
+.sig-left { flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+.canvas-wrapper {
+  flex: 1; min-height: 0; position: relative;
+  background-color: #fff;
+  background-image: linear-gradient(45deg,#dce3ed 25%,transparent 25%), linear-gradient(-45deg,#dce3ed 25%,transparent 25%), linear-gradient(45deg,transparent 75%,#dce3ed 75%), linear-gradient(-45deg,transparent 75%,#dce3ed 75%);
+  background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+@media (max-width: 900px) { .canvas-wrapper { flex: none; height: 52vh; min-height: 280px; } }
+.canvas-wrapper.dragover { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); }
+.sig-canvas { max-width: 100%; max-height: 100%; object-fit: contain; display: block; position: relative; z-index: 1; }
+.sig-empty { text-align: center; cursor: pointer; padding: 20px; }
+.sig-empty .dz-icon { font-size: 1.6rem; }
+.sig-empty .d-title { font-weight: 700; font-size: var(--fs-sec); color: #1f2937; }
+.sig-empty .dz-hint { color: #6b7280; }
+.eraser-cursor {
+  position: absolute; z-index: 2; pointer-events: none;
+  border: 1.5px solid rgba(0,0,0,0.75); border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.6); transform: translate(-50%, -50%); display: none;
+}
+.sig-strip { flex-shrink: 0; display: flex; gap: 8px; align-items: center; overflow-x: auto; overflow-y: visible; min-height: 56px; padding-top: 6px; }
+.sig-thumb { position: relative; width: 46px; height: 46px; border-radius: 6px; border: 1px solid var(--border); background: #fff; cursor: pointer; padding: 0; flex-shrink: 0; }
+.sig-thumb.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+.sig-thumb canvas { width: 100%; height: 100%; object-fit: contain; border-radius: 6px; display: block; }
+.sig-thumb .tx {
+  position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--err); color: #fff; font-size: 10px; line-height: 16px; text-align: center; display: none;
+}
+.sig-thumb:hover .tx { display: block; }
+/* A file that could not be opened (B-1): the error tone, no canvas. */
+.sig-thumb-err { display: flex; align-items: center; justify-content: center; border-color: var(--err); background: transparent; color: var(--err); font-size: 1.1rem; }
+.sig-add {
+  width: 46px; height: 46px; border-radius: 6px; border: 1px dashed var(--border);
+  background: transparent; color: var(--text-sec); font-size: 1.2rem; cursor: pointer; flex-shrink: 0;
+}
+.sig-add:hover { border-color: var(--accent); color: var(--accent); }
+.sig-controls { gap: 8px; }
+.sig-controls .seg label { padding: 4px 6px; font-size: var(--fs-sm); }
+.sig-controls .cg { gap: 4px; }
+.sig-cg { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.sig-stat {
+  font-family: var(--mono); font-size: var(--fs-label); color: var(--text-muted); line-height: 1.5; flex-shrink: 0; min-height: 1em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}

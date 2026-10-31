@@ -1,0 +1,12 @@
+/* ─── Transcode specifics ─────────────────────────────────── */
+.tc-pane { display: flex; flex-direction: column; }
+.tc-pane .panel + .panel { margin-top: 16px; }
+.cmd-block {
+  background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px; font-family: var(--mono); font-size: var(--fs-sm); line-height: 1.7;
+  white-space: pre-wrap; word-break: break-all; color: #fbbf24;
+  overflow-x: auto;
+}
+.explain { display: flex; flex-direction: column; gap: 6px; }
+.explain-line { display: flex; gap: 8px; font-size: var(--fs-sm); color: var(--text-sec); }
+.explain-line code { color: var(--accent); flex-shrink: 0; font-size: var(--fs-sm); }
