@@ -59,6 +59,16 @@
   <link rel="stylesheet" href="css/theme-color.css">
 </head>
 <body>
+<!-- Key words: the navbar shows them, translated, under its Language tab. -->
+<ul data-carino-words hidden>
+  <li>Batch converter</li>
+  <li>Convert PDF</li>
+  <li>Run OCR</li>
+  <li>Searchable PDF</li>
+  <li>Box all</li>
+  <li>Undo</li>
+</ul>
+
 
 <!-- Modules: one bar, above the shared drop area from the start (CarinoUI.slices, collapsed). -->
 <nav class="slice-menu collapsed" id="modules" aria-label="Modules">
@@ -180,7 +190,7 @@
           <img class="mark mk-gold" src="logo.svg" alt="" width="48" height="48">
           <img class="mark mk-color" src="logo-color.svg" alt="" width="48" height="48">
           <h1 data-i18n>Convert, read and clean up files</h1>
-          <p class="sh-lede"><span data-i18n>Drop or paste a file: it is identified by its magic bytes and you choose what to do with it.</span> <span class="privacy-line" data-i18n>Runs in your browser. Nothing you add here is uploaded.</span></p>
+          <p class="sh-lede"><span data-i18n>Drop or paste a file: it is identified by its magic bytes and you choose what to do with it.</span></p>
           <div class="sh-input" id="auto-hero-input">
             <div class="dropzone auto-drop" id="auto-drop" tabindex="0" role="button" aria-label="Drop or paste any file">
               <div class="dz-icon">✨</div>
@@ -365,9 +375,6 @@
             <p class="hint" data-i18n>Export ▾ Split saves one PDF per part, in a ZIP.</p>
           </div>
         </details>
-        <div class="ws-rail-foot">
-          <p class="privacy-line" data-i18n>Runs in your browser. Nothing you add here is uploaded.</p>
-        </div>
       </aside>
       <div class="ws-pane" id="pg-pane">
         <div class="pane-bar">
@@ -446,9 +453,6 @@
             <p class="hint" data-i18n>Burned in: the pixels underneath are destroyed.</p>
           </div>
         </div>
-        <div class="ws-rail-foot">
-          <p class="privacy-line" data-i18n>Runs in your browser. Nothing you add here is uploaded.</p>
-        </div>
       </aside>
       <div class="ws-pane" id="rd-pane">
         <div class="pane-bar">
@@ -492,9 +496,6 @@
             <p class="hint" id="md-write-hint"></p>
           </div>
         </div>
-        <div class="ws-rail-foot">
-          <p class="privacy-line" data-i18n>Runs in your browser. Nothing you add here is uploaded.</p>
-        </div>
       </aside>
       <div class="ws-pane" id="md-pane">
         <div class="pane-bar">
@@ -531,7 +532,6 @@
             <button type="button" class="chip-tag" data-sample="logo.svg" data-i18n>An SVG drawing</button>
           </div>
           <div class="fmt-legend" id="md-legend"></div>
-          <p class="privacy-line" data-i18n>Runs in your browser. Nothing you add here is uploaded.</p>
         </div>
         <div id="md-viewer" hidden>
           <div id="md-advisory"></div>
@@ -836,8 +836,10 @@
 <div data-carino-about hidden>
   <p data-i18n>Everything runs in your browser; files are never uploaded.</p>
   <p data-i18n>Works offline after your first visit.</p>
-  <p data-i18n>Bundled libraries: pdf.js, Tesseract.js and its Fast and Best language models (Apache-2.0), libheif (LGPL-3.0, shipped unmodified), Mediabunny (MPL-2.0); for metadata, exifr, piexif, pdf-lib, opentype.js and browser-id3-writer (MIT) and jsmediatags (BSD-3-Clause). Each loads only when needed. Details in vendor/README.md.</p>
-  <p class="cn-ab-meta" data-i18n>Keyboard</p>
+</div>
+<!-- How to use: the navbar's About window, How to use tab. -->
+<div data-carino-howto hidden>
+  <p><b data-i18n>Keyboard</b></p>
   <!-- Shortcuts (spec §19): ignored while typing in a field. -->
   <dl class="kbd-grid ab-keys">
     <dt><span class="kbd">1</span>–<span class="kbd">9</span></dt><dd data-i18n>Open an outcome card</dd>
@@ -851,6 +853,10 @@
     <dt><span class="kbd">←</span><span class="kbd">↑</span><span class="kbd">↓</span><span class="kbd">→</span></dt><dd data-i18n>Redact: nudge the selected box</dd>
     <dt><span class="kbd">Ctrl/⌘</span> <span class="kbd">Z</span></dt><dd data-i18n>Undo in Pages and Redact</dd>
   </dl>
+</div>
+<!-- What the page credits: the navbar's About window, Licence tab. -->
+<div data-carino-licence hidden>
+  <p data-i18n>Bundled libraries: pdf.js, Tesseract.js and its Fast and Best language models (Apache-2.0), libheif (LGPL-3.0, shipped unmodified), Mediabunny (MPL-2.0); for metadata, exifr, piexif, pdf-lib, opentype.js and browser-id3-writer (MIT) and jsmediatags (BSD-3-Clause). Each loads only when needed. Details in vendor/README.md.</p>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
