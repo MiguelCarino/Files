@@ -1,3 +1,8 @@
 # Playwright for tests/smoke/run.sh, when installed locally.
 tests/smoke/node_modules/
 tests/smoke/package-lock.json
+
+# Clip fixtures and bench outputs (tools/clip_fixtures.py, tests/clip/bench.mjs): generated, large.
+tests/clip/fixtures/
+tests/clip/results/
+tests/clip/__pycache__/

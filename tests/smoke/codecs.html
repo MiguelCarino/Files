@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Codec capability row</title>
+<style>
+  :root { color-scheme: light dark; --bg: #fbfaf7; --fg: #1d1b16; --muted: #6b6558; --line: #ddd6c6; --accent: #8a6a12; --yes: #1d7a3a; --no: #b3261e; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #15140f; --fg: #ece6d6; --muted: #a39b88; --line: #3a362b; --accent: #e0b84a; --yes: #7fd99a; --no: #ff8a80; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, sans-serif; }
+  main { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  h2 { font-size: 1rem; margin: 20px 0 6px; }
+  p { margin: 0 0 12px; color: var(--muted); }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .85rem; font-variant-numeric: tabular-nums; }
+  th, td { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
+  td.v { white-space: nowrap; }
+  .yes { color: var(--yes); } .no { color: var(--no); } .info { color: var(--muted); }
+  button { font: inherit; padding: 6px 12px; border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 6px; cursor: pointer; }
+  textarea { width: 100%; min-height: 12em; font: 12px/1.4 ui-monospace, monospace; background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+  code { overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<main>
+<h1>Codec capability row</h1>
+<p>What this browser says it can encode, decode and do, for Clip's capability matrix (docs/SCOPE-CLIP.md §6).
+  “Supported” means the config is accepted, not that the encoder is fast. Nothing is sent anywhere: copy the JSON and paste it.</p>
+<p id="status" role="status">Probing…</p>
+<div class="wrap"><table id="t"><thead><tr><th>check</th><th>config</th><th>result</th></tr></thead><tbody></tbody></table></div>
+<h2>JSON</h2>
+<div class="row"><button id="copy" type="button">Copy JSON</button><a id="dl" download="codecs.json" href="#">Download</a><span id="copied" class="info" role="status"></span></div>
+<textarea id="json" readonly></textarea>
+</main>
+<script>
+'use strict';
+// Codec strings: level 4.0-ish so 1080p30 is in range for every codec.
+const ENC = {
+  vp8: 'vp8',
+  vp9: 'vp09.00.40.08',
+  av1: 'av01.0.08M.08',
+  h264: 'avc1.640028',
+  hevc: 'hvc1.1.6.L120.B0',
+};
+const DEC = {
+  vp8: 'vp8', vp9: 'vp09.00.40.08', 'vp9 10-bit (HDR)': 'vp09.02.40.10.01.09.16.09.00',
+  av1: 'av01.0.08M.08', 'av1 10-bit': 'av01.0.08M.10',
+  h264: 'avc1.640028', hevc: 'hvc1.1.6.L120.B0', 'hevc main10': 'hvc1.2.4.L120.B0',
+};
+const SIZES = [[1280, 720], [1920, 1080]];
+const MODES = ['variable', 'constant'];
+const HW = ['prefer-hardware', 'prefer-software'];
+
+const out = { when: new Date().toISOString(), userAgent: navigator.userAgent, secureContext: window.isSecureContext,
+  hardwareConcurrency: navigator.hardwareConcurrency || null, deviceMemory: navigator.deviceMemory || null,
+  videoEncoder: {}, audioEncoder: {}, videoDecoder: {}, canPlayType: {}, features: {} };
+const rows = [];
+const add = (check, config, value) => rows.push([check, config, value]);
+
+async function tryCall(fn) {
+  try { return await fn(); } catch (e) { return 'error: ' + (e && e.name || e); }
+}
+
+async function videoEncoders() {
+  if (typeof VideoEncoder !== 'function') { out.videoEncoder = 'absent'; add('VideoEncoder', '', 'absent'); return; }
+  for (const [name, codec] of Object.entries(ENC)) {
+    out.videoEncoder[name] = {};
+    for (const [w, h] of SIZES) for (const mode of MODES) for (const hw of HW) {
+      const key = `${w}x${h} ${mode} ${hw}`;
+      const cfg = { codec, width: w, height: h, bitrate: 2000000, framerate: 30, bitrateMode: mode, hardwareAcceleration: hw };
+      if (name === 'h264') cfg.avc = { format: 'annexb' };
+      const r = await tryCall(async () => (await VideoEncoder.isConfigSupported(cfg)).supported === true);
+      out.videoEncoder[name][key] = r;
+      add('VideoEncoder ' + name, codec + ' ' + key, r);
+    }
+  }
+}
+
+async function audioEncoders() {
+  if (typeof AudioEncoder !== 'function') { out.audioEncoder = 'absent'; add('AudioEncoder', '', 'absent'); return; }
+  for (const [name, codec] of [['opus', 'opus'], ['aac', 'mp4a.40.2']]) {
+    const cfg = { codec, sampleRate: 48000, numberOfChannels: 2, bitrate: 128000 };
+    const r = await tryCall(async () => (await AudioEncoder.isConfigSupported(cfg)).supported === true);
+    out.audioEncoder[name] = r;
+    add('AudioEncoder ' + name, codec + ' 48 kHz stereo 128k', r);
+  }
+}
+
+async function videoDecoders() {
+  if (typeof VideoDecoder !== 'function') { out.videoDecoder = 'absent'; add('VideoDecoder', '', 'absent'); return; }
+  for (const [name, codec] of Object.entries(DEC)) {
+    const cfg = { codec, codedWidth: 1920, codedHeight: 1080 };
+    const r = await tryCall(async () => (await VideoDecoder.isConfigSupported(cfg)).supported === true);
+    out.videoDecoder[name] = r;
+    add('VideoDecoder ' + name, codec, r);
+  }
+}
+
+function playTypes() {
+  const v = document.createElement('video');
+  const types = {
+    'webm vp9': 'video/webm; codecs="vp9"', 'webm vp9 (full)': 'video/webm; codecs="vp09.00.40.08"',
+    'webm av1': 'video/webm; codecs="av01.0.08M.08"', 'webm vp8': 'video/webm; codecs="vp8"',
+    'webm vp9+opus': 'video/webm; codecs="vp9, opus"',
+    'mp4 h264': 'video/mp4; codecs="avc1.640028"', 'mp4 hevc': 'video/mp4; codecs="hvc1.1.6.L120.B0"',
+    'mkv': 'video/x-matroska',
+  };
+  for (const [name, t] of Object.entries(types)) {
+    const r = v.canPlayType(t) || 'no';
+    out.canPlayType[name] = r;
+    add('canPlayType ' + name, t, r);
+  }
+}
+
+async function features() {
+  const f = out.features;
+  f.requestVideoFrameCallback = typeof HTMLVideoElement !== 'undefined' && 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+  f.showSaveFilePicker = typeof window.showSaveFilePicker === 'function';
+  f.opfs = await tryCall(async () => {
+    if (!navigator.storage || typeof navigator.storage.getDirectory !== 'function') return false;
+    await navigator.storage.getDirectory();
+    return true;
+  });
+  f.wakeLock = !!(navigator.wakeLock && typeof navigator.wakeLock.request === 'function');
+  f.offscreenCanvas = typeof OffscreenCanvas === 'function';
+  f.offscreenWebgl2 = f.offscreenCanvas ? await tryCall(() => !!new OffscreenCanvas(16, 16).getContext('webgl2')) : false;
+  f.webgl2 = await tryCall(() => !!document.createElement('canvas').getContext('webgl2'));
+  f.worker = typeof Worker === 'function';
+  f.videoFrame = typeof VideoFrame === 'function';
+  f.videoFrameColorSpace = await tryCall(() => {
+    if (typeof VideoFrame !== 'function') return false;
+    const c = document.createElement('canvas'); c.width = c.height = 16;
+    c.getContext('2d').fillRect(0, 0, 16, 16);
+    const vf = new VideoFrame(c, { timestamp: 0 });
+    const cs = vf.colorSpace ? vf.colorSpace.toJSON() : null;
+    vf.close();
+    return cs;
+  });
+  // HDR: the display (matchMedia), and what a canvas can hold.
+  f.displayDynamicRangeHigh = matchMedia('(dynamic-range: high)').matches;
+  f.videoDynamicRangeHigh = matchMedia('(video-dynamic-range: high)').matches;
+  f.colorGamutP3 = matchMedia('(color-gamut: p3)').matches;
+  f.canvasDisplayP3 = await tryCall(() => {
+    const g = document.createElement('canvas').getContext('2d', { colorSpace: 'display-p3' });
+    return !!(g && g.getContextAttributes && g.getContextAttributes().colorSpace === 'display-p3');
+  });
+  f.canvasFloat16 = await tryCall(() => {
+    const g = document.createElement('canvas').getContext('2d', { colorType: 'float16' });
+    return !!(g && g.getContextAttributes && g.getContextAttributes().colorType === 'float16');
+  });
+  f.webgl2DrawingBufferColorSpace = typeof WebGL2RenderingContext !== 'undefined' && 'drawingBufferColorSpace' in WebGL2RenderingContext.prototype;
+  f.mediaCapabilities = !!(navigator.mediaCapabilities && navigator.mediaCapabilities.encodingInfo);
+  for (const [k, v] of Object.entries(f)) add('feature', k, v);
+}
+
+function cls(v) {
+  if (v === true || v === 'probably' || v === 'maybe') return 'yes';
+  if (v === false || v === 'no' || v === 'absent' || String(v).startsWith('error')) return 'no';
+  return 'info';
+}
+
+function render() {
+  const tb = document.querySelector('#t tbody');
+  tb.textContent = '';
+  for (const [a, b, v] of rows) {
+    const tr = document.createElement('tr');
+    const shown = typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v);
+    for (const [txt, c] of [[a, ''], [b, ''], [shown, 'v ' + cls(v)]]) {
+      const td = document.createElement('td'); td.textContent = txt; if (c) td.className = c; tr.append(td);
+    }
+    tb.append(tr);
+  }
+  const json = JSON.stringify(out, null, 2);
+  document.getElementById('json').value = json;
+  document.getElementById('dl').href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+}
+
+document.getElementById('copy').addEventListener('click', async () => {
+  const ta = document.getElementById('json');
+  const done = (t) => { document.getElementById('copied').textContent = t; };
+  try { await navigator.clipboard.writeText(ta.value); done('Copied'); }
+  catch {
+    ta.select();
+    try { done(document.execCommand('copy') ? 'Copied' : 'Select the text and copy it'); }
+    catch { done('Select the text and copy it'); }
+  }
+});
+
+(async () => {
+  await videoEncoders();
+  await audioEncoders();
+  await videoDecoders();
+  playTypes();
+  await features();
+  render();
+  document.getElementById('status').textContent = window.isSecureContext
+    ? 'Done.' : 'Done, but this is not a secure context (use https or localhost): WebCodecs and OPFS may be hidden.';
+  window.codecsRow = out;
+})();
+</script>
+</body>
+</html>

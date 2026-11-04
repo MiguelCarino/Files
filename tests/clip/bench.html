@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Clip encoder bench</title>
+<style>
+  :root { color-scheme: light dark; --bg: #fbfaf7; --fg: #1d1b16; --muted: #6b6558; --line: #ddd6c6; --accent: #8a6a12; --bad: #b3261e; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #15140f; --fg: #ece6d6; --muted: #a39b88; --line: #3a362b; --accent: #e0b84a; --bad: #ff8a80; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, sans-serif; }
+  h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  p { margin: 0 0 12px; color: var(--muted); max-width: 70ch; }
+  form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-bottom: 12px; }
+  label { display: grid; gap: 2px; font-size: .85rem; color: var(--muted); }
+  select, button { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--fg); max-width: 100%; }
+  button { border-color: var(--accent); color: var(--accent); cursor: pointer; }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .85rem; }
+  th, td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  .err { color: var(--bad); }
+  #status { min-height: 1.4em; }
+</style>
+</head>
+<body>
+<h1>Clip encoder bench</h1>
+<p>Encodes a fixture to WebM with the vendored Mediabunny (WebCodecs, bitrate mode “variable”; <code>bench.mjs --mode constant</code> for the other) and reports encode speed,
+  requested vs actual video bytes and container overhead. Fixtures come from <code>python3 -I tools/clip_fixtures.py</code>;
+  <code>node tests/clip/bench.mjs</code> drives this page headless and adds SSIM. Nothing leaves this machine.</p>
+<form id="f">
+  <label>Fixture <select id="fx"></select></label>
+  <label>Codec <select id="codec"><option>vp9</option><option>av1</option><option>vp8</option></select></label>
+  <label>Target <select id="mib"><option value="2">2 MiB</option><option value="4" selected>4 MiB</option><option value="6">6 MiB</option></select></label>
+  <label>Encoder <select id="hw"><option value="">no preference</option><option>prefer-software</option><option>prefer-hardware</option></select></label>
+  <button id="go" type="submit">Encode</button>
+</form>
+<div id="status" role="status"></div>
+<div class="wrap"><table id="out"><thead><tr>
+  <th>fixture</th><th>codec</th><th>target</th><th>req kbps</th><th>got kbps</th><th>overshoot</th><th>overhead</th><th>fps</th><th>× real time</th><th>file</th>
+</tr></thead><tbody></tbody></table></div>
+<script type="module">
+import * as L from './benchlib.mjs';
+
+let mbP = null;
+const mediabunny = () => (mbP ||= import('../../vendor/mediabunny/mediabunny.min.mjs'));
+const $ = (id) => document.getElementById(id);
+const status = (t, bad) => { $('status').textContent = t; $('status').className = bad ? 'err' : ''; };
+
+async function sumPackets(mb, buf) {
+  const input = new mb.Input({ source: new mb.BufferSource(buf), formats: mb.ALL_FORMATS });
+  const out = { video: 0, audio: 0, frames: 0, duration: await input.computeDuration(), w: 0, h: 0, codec: '' };
+  for (const track of await input.getTracks()) {
+    const sink = new mb.EncodedPacketSink(track);
+    const video = track.isVideoTrack();
+    for await (const p of sink.packets()) {
+      const n = p.byteLength ?? p.data.byteLength;
+      if (video) { out.video += n; out.frames++; } else out.audio += n;
+    }
+    if (video) {
+      out.w = track.displayWidth; out.h = track.displayHeight;
+      out.codec = await track.getCodecParameterString().catch(() => '') || track.codec;
+    }
+  }
+  return out;
+}
+
+/* One job: { src, codec, videoBps, audioBps, hw?, save?, browser?, out } → measurements. */
+async function benchJob(job) {
+  const mb = await mediabunny();
+  const res = await fetch('fixtures/' + job.src);
+  if (!res.ok) throw new Error('fixture ' + job.src + ': HTTP ' + res.status);
+  const blob = await res.blob();
+  const input = new mb.Input({ source: new mb.BlobSource(blob), formats: mb.ALL_FORMATS });
+  const srcVideo = await input.getPrimaryVideoTrack();
+  if (!srcVideo) throw new Error('no video track');
+  const srcAudio = await input.getPrimaryAudioTrack();
+  const srcDuration = await input.computeDuration();
+  const srcCodec = srcVideo.codec;
+  const canDecode = await srcVideo.canDecode().catch(() => false);
+  if (!canDecode) throw new Error(`this browser can't decode the source (${srcCodec})`);
+
+  let bitrate = job.videoBps;
+  try { bitrate = new mb.Quality({ bitrate: job.videoBps, bitrateMode: job.bitrateMode || 'variable' }); } catch { /* older API: a number is variable by default */ }
+  const video = { codec: job.codec, bitrate, forceTranscode: true };
+  if (job.hw) video.hardwareAcceleration = job.hw;
+  // --frame-rate source: pass the source's rate as video.frameRate, which also hands the
+  // encoder a framerate hint (Mediabunny leaves it unset otherwise). CFR sources only.
+  let frameRateHint = null;
+  if (job.frameRate === 'source') {
+    const stats = await srcVideo.computePacketStats(120);
+    frameRateHint = Math.round(stats.averagePacketRate * 1000) / 1000;
+    if (frameRateHint > 0) video.frameRate = frameRateHint;
+  }
+  const withAudio = !!(srcAudio && job.audioBps);
+  const audio = withAudio ? { codec: 'opus', bitrate: job.audioBps, forceTranscode: true } : { discard: true };
+
+  const target = new mb.BufferTarget();
+  const output = new mb.Output({ format: new mb.WebMOutputFormat(), target });
+  const conversion = await mb.Conversion.init({ input, output, tracks: 'primary', video, audio, showWarnings: false });
+  const lost = conversion.discardedTracks.filter((d) => d.reason !== 'discarded_by_user');
+  if (!conversion.isValid || lost.some((d) => d.track.isVideoTrack())) {
+    throw new Error('conversion not possible: ' + lost.map((d) => d.track.type + ' ' + d.reason).join(', '));
+  }
+  const t0 = performance.now();
+  await conversion.execute();
+  const encodeMs = performance.now() - t0;
+  const buf = target.buffer;
+
+  const pk = await sumPackets(mb, buf);
+  const fileBytes = buf.byteLength;
+  const overhead = L.containerOverhead(fileBytes, pk.video + pk.audio);
+  const fps = pk.duration > 0 ? pk.frames / pk.duration : NaN;
+  const actualVideoBps = srcDuration > 0 ? pk.video * 8 / srcDuration : NaN;
+  const result = {
+    srcCodec, srcDuration, outDuration: pk.duration, outCodec: pk.codec, w: pk.w, h: pk.h, frames: pk.frames,
+    fileBytes, videoBytes: pk.video, audioBytes: pk.audio, audio: withAudio,
+    overheadBytes: overhead.bytes, overheadPct: overhead.pct,
+    requestedVideoBytes: L.requestedBytes(job.videoBps, srcDuration),
+    overshoot: L.overshootFactor(pk.video, job.videoBps, srcDuration),
+    actualVideoBps,
+    fillPct: job.limitBytes ? fileBytes / job.limitBytes * 100 : NaN,
+    encodeMs, encodeFps: L.encodeFps(pk.frames, encodeMs), realtime: srcDuration * 1000 / encodeMs,
+    // bppRequested is what the planner (fit.js) can compute before encoding; bppActual is what the
+    // encoder spent. They differ by the overshoot factor (§12.3), so tables must say which they use.
+    bppRequested: L.bitsPerPixel(job.videoBps, pk.w, pk.h, fps),
+    bppActual: L.bitsPerPixel(actualVideoBps, pk.w, pk.h, fps), outFps: fps,
+    lostTracks: lost.map((d) => d.track.type + ':' + d.reason), frameRateHint,
+  };
+  if (job.save) {
+    const q = new URLSearchParams({ browser: job.browser || 'manual', name: job.out });
+    const r = await fetch('/__bench/save?' + q, { method: 'POST', body: buf });
+    result.saved = r.ok;
+  } else {
+    result.url = URL.createObjectURL(new Blob([buf], { type: 'video/webm' }));
+  }
+  return result;
+}
+
+const fmt = (n, d = 2) => (Number.isFinite(n) ? n.toFixed(d) : '–');
+function addRow(job, r, err) {
+  const tr = document.createElement('tr');
+  const cells = err
+    ? [job.fixture, job.codec, job.limitMiB + ' MiB', fmt(job.videoBps / 1000, 0), '', '', '', '', '', '']
+    : [job.fixture, job.codec, job.limitMiB + ' MiB', fmt(job.videoBps / 1000, 0), fmt(r.actualVideoBps / 1000, 0),
+       fmt(r.overshoot, 3), fmt(r.overheadPct, 2) + '%', fmt(r.encodeFps, 1), fmt(r.realtime, 2), ''];
+  cells.forEach((c, i) => { const td = document.createElement('td'); td.textContent = c; tr.append(td); });
+  const last = tr.lastChild;
+  if (err) { last.textContent = String(err.message || err); last.className = 'err'; last.style.textAlign = 'left'; }
+  else if (r.url) { const a = document.createElement('a'); a.href = r.url; a.download = job.out; a.textContent = (r.fileBytes / L.MiB).toFixed(2) + ' MiB'; last.append(a); }
+  else last.textContent = (r.fileBytes / L.MiB).toFixed(2) + ' MiB';
+  $('out').tBodies[0].append(tr);
+}
+
+let fixtures = [];
+async function init() {
+  try {
+    const res = await fetch('fixtures/manifest.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    fixtures = L.parseManifest(await res.json());
+    for (const f of fixtures) $('fx').append(new Option(`${f.name} (${f.w}×${f.h}, ${f.duration}s)`, f.name));
+    status(fixtures.length + ' fixtures');
+  } catch (e) {
+    status('No fixtures yet: run python3 -I tools/clip_fixtures.py (' + (e.message || e) + ')', true);
+  }
+}
+
+$('f').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const f = fixtures.find((x) => x.name === $('fx').value);
+  if (!f) return;
+  const [job] = L.planJobs([f], { codecs: [$('codec').value], budgetsMiB: [Number($('mib').value)] });
+  if (!job) { status('That target leaves no room for video', true); return; }
+  job.hw = $('hw').value || undefined;
+  $('go').disabled = true;
+  status('Encoding ' + job.out + ' …');
+  try { addRow(job, await benchJob(job)); status('Done'); }
+  catch (e) { addRow(job, null, e); status('Failed', true); }
+  finally { $('go').disabled = false; }
+});
+
+window.benchJob = async (job) => {
+  try { const r = await benchJob(job); addRow(job, r); return { ok: true, ...r }; }
+  catch (e) { addRow(job, null, e); return { ok: false, error: String(e && e.message || e) }; }
+};
+window.benchInfo = () => ({
+  userAgent: navigator.userAgent, hardwareConcurrency: navigator.hardwareConcurrency || null,
+  deviceMemory: navigator.deviceMemory || null, webcodecs: typeof VideoEncoder === 'function',
+});
+init().then(() => { window.benchReady = true; });
+</script>
+</body>
+</html>
