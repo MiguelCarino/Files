@@ -862,9 +862,11 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- Report preview (js/report-preview.js): the shared .rpv layout (carino-ui.css
-     18b). Everything sits in the left column: title and ✕, page count, file
-     name, and Print at its foot; the report on the right. Print prints this
-     frame; ✕, Esc or a click outside keeps nothing. Below the navbar. -->
+     18b). Everything sits in the left column: title and ✕, page count, the
+     File PDF | HTML switch (carino-pdf.js, put in above the name on first
+     open), the file name, and Print + Download at its foot; the report on the
+     right. Print prints this frame, Download saves the report as the chosen
+     file; ✕, Esc or a click outside keeps nothing. Below the navbar. -->
 <div class="modal-scrim rpv-scrim" id="rp-scrim" hidden>
   <div class="rpv" role="dialog" aria-modal="true" aria-labelledby="rp-title">
     <aside class="rpv-side">
@@ -875,7 +877,8 @@
       <p class="rpv-status" id="rp-status" role="status" aria-live="polite"></p>
       <p class="rpv-name" id="rp-name"></p>
       <div class="rpv-actions">
-        <button type="button" class="btn btn-primary" id="rp-print" disabled data-i18n>Print or save as PDF</button>
+        <button type="button" class="btn" id="rp-print" disabled data-i18n>Print</button>
+        <button type="button" class="btn btn-primary" id="rp-download" disabled>Download PDF</button>
       </div>
     </aside>
     <div class="rpv-stage" id="rp-stage"><iframe id="rp-frame" class="rpv-frame" title="Report preview"></iframe></div>
@@ -929,6 +932,7 @@
 <script src="js/expose.js"></script>
 
 <script src="carino-bridge.js" defer></script>
+<script src="carino-pdf.js" defer></script>
 <script src="carino-navbar.js" data-app="Files" data-repo="Files" data-license="AGPL-3.0" defer></script>
 <script src="carino-theme.js" data-mark="logo.svg" data-mark-color="logo-color.svg" defer></script>
 <script src="carino-ui.js" defer></script>

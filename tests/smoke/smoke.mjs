@@ -100,11 +100,26 @@ try {
       status: document.getElementById('rp-status').textContent, name: document.getElementById('rp-name').textContent,
       sheet: w.getComputedStyle(f.contentDocument.body).backgroundColor, printed: window.__printed };
   });
-  check(ok && pv.open && pv.printed === 0 && /page/.test(pv.status) && pv.name === 'dot.png' && pv.top !== '0px',
+  check(ok && pv.open && pv.printed === 0 && /page/.test(pv.status) && pv.name === 'dot-metadata.pdf' && pv.top !== '0px',
     'Printable report shows a preview first (below the navbar, page count, file name), nothing printed yet', pv);
   await md.click('#rp-print');
   const printed = await md.evaluate(() => ({ frame: document.getElementById('rp-frame').contentWindow.__printed, page: window.__printed }));
   check(printed.frame === 1 && printed.page === 0, "the preview's Print prints the preview frame once", printed);
+  // Download follows the File PDF | HTML switch (carino-pdf.js) and saves the report itself.
+  for (const f of ['pdf', 'html']) {
+    await md.click(`#rp-scrim .rpv-format [data-format="${f}"]`);
+    const label = (await md.textContent('#rp-download')).trim();
+    const dlEvent = md.waitForEvent('download', { timeout: 60000 });
+    await md.click('#rp-download');
+    const d = await dlEvent;
+    const file = path.join(tmp, d.suggestedFilename());
+    await d.saveAs(file);
+    const head = readFileSync(file).subarray(0, 4096).toString('latin1');
+    const good = f === 'pdf' ? head.startsWith('%PDF') : /File Metadata Overview/.test(readFileSync(file, 'utf8')) && !/<script/i.test(readFileSync(file, 'utf8'));
+    check(good && d.suggestedFilename() === 'dot-metadata.' + f && label === (f === 'pdf' ? 'Download PDF' : 'Download HTML'),
+      `Download ${f.toUpperCase()} saves dot-metadata.${f} (label follows the switch)`, { name: d.suggestedFilename(), label });
+  }
+  await md.click('#rp-scrim .rpv-format [data-format="pdf"]');
   // Focus inside the frame (a click on the sheet) must not swallow Esc.
   await md.evaluate(() => { const w = document.getElementById('rp-frame').contentWindow; w.focus(); w.document.body.focus(); });
   await md.frameLocator('#rp-frame').locator('body').press('Escape');

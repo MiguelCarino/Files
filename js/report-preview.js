@@ -10,23 +10,27 @@
    down, as it will print, rather than the report reflowed.
 
    The dialog is the fleet's shared .rpv layout (carino-ui.css 18b): title,
-   ✕, page count, file name and Print all in the left column, Print at its
-   foot, the sheet on the right (#rp-stage, which rpFit measures).
+   ✕, page count, the File PDF | HTML switch, the file name, and Print +
+   Download at the foot of the left column, the sheet on the right
+   (#rp-stage, which rpFit measures).
 
-   openReportPreview({ name, build, returnFocus }): build() returns (or
-   resolves to) the report's full HTML; name is shown in the left column
-   under the page count (what the report is of); returnFocus is where focus
-   goes on close (default: what had focus, which is a hidden menu item when
-   opened from a menu).
-   Print prints the frame (→ Save as PDF in the dialog) and leaves the preview
-   open for another copy; ✕, Esc or a click outside drops it, nothing kept.
-   There is no separate Download: the report is HTML and the print dialog's
-   Save as PDF is its file. The modal itself is CarinoUI.modal (focus trap,
-   Esc, focus back). */
+   openReportPreview({ name, file, build, returnFocus }): build() returns (or
+   resolves to) the report's full HTML; file is the downloaded file's name
+   without its extension (default: name), shown in the left column with the
+   chosen format's extension; returnFocus is where focus goes on close
+   (default: what had focus, which is a hidden menu item when opened from a
+   menu).
+   Print prints the frame (→ the browser's print dialog) and leaves the
+   preview open for another copy. Download saves the report as a PDF or a
+   standalone HTML file (carino-pdf.js, the switch remembers the choice); the
+   PDF is the report as it prints (its @media print rules, @page margins),
+   drawn from the report's own HTML, never from the screen-only sheet around
+   it. ✕, Esc or a click outside drops it, nothing kept. The modal itself is
+   CarinoUI.modal (focus trap, Esc, focus back). */
 const RP_MM = 96 / 25.4;
 const RP_A4 = { w: 210 * RP_MM, h: 297 * RP_MM, m: 15 * RP_MM };
 const RP_SHEET_PX = Math.ceil(RP_A4.w) + 32;          // the sheet and the grey either side
-const _rp = { seq: 0, cfg: null, ready: false };
+const _rp = { seq: 0, cfg: null, ready: false, html: '', pages: 0, busy: false, format: null };
 
 function rpEl(id){ return document.getElementById(id); }
 
@@ -78,8 +82,10 @@ async function rpRefresh(){
   const seq = ++_rp.seq;
   const frame = rpEl('rp-frame'), status = rpEl('rp-status'), go = rpEl('rp-print');
   _rp.ready = false;
+  _rp.html = '';
   go.disabled = true;
-  setText(status, 'Preparing the report…');
+  rpEl('rp-download').disabled = true;
+  if(!_rp.busy) setText(status, 'Preparing the report…');
   let html;
   try { html = await _rp.cfg.build(); }
   catch(e){
@@ -88,6 +94,7 @@ async function rpRefresh(){
     return;
   }
   if(seq !== _rp.seq || !_rp.cfg) return;
+  _rp.html = html;
   await new Promise(done => {
     let over = false;
     const shown = () => { if(over) return; over = true; frame.onload = null; done(); };
@@ -124,30 +131,76 @@ async function rpRefresh(){
     });
   } catch(e){ console.warn('Report preview: could not measure the pages.', e); }
   rpFit();
-  if(pages === 1) setText(status, 'About 1 page on A4');
-  else if(pages > 1) setText(status, 'About {n} pages on A4', { n: pages });
-  else setText(status, '');
+  _rp.pages = pages;
+  if(!_rp.busy) rpPageStatus();
   _rp.ready = true;
   go.disabled = false;
+  rpEl('rp-download').disabled = _rp.busy || !window.CarinoPdf;
+}
+
+function rpPageStatus(){
+  const status = rpEl('rp-status');
+  if(_rp.pages === 1) setText(status, 'About 1 page on A4');
+  else if(_rp.pages > 1) setText(status, 'About {n} pages on A4', { n: _rp.pages });
+  else setText(status, '');
+}
+
+// File PDF | HTML (carino-pdf.js, deferred: made on the first open), put just
+// above the file name. The Download label and the file name follow it.
+function rpFormatSwitch(){
+  if(_rp.format || !window.CarinoPdf) return _rp.format;
+  CarinoPdf.t = T;
+  _rp.format = CarinoPdf.formatSwitch({ onChange: rpLabelFile });
+  const name = rpEl('rp-name');
+  name.parentNode.insertBefore(_rp.format.el, name);
+  return _rp.format;
+}
+function rpFileFormat(){ return _rp.format ? _rp.format.get() : 'pdf'; }
+function rpLabelFile(){
+  const f = rpFileFormat();
+  setText(rpEl('rp-download'), f === 'html' ? 'Download HTML' : 'Download PDF');
+  const stem = _rp.cfg ? (_rp.cfg.file || _rp.cfg.name || '') : '';
+  setRaw(rpEl('rp-name'), !stem ? '' : window.CarinoPdf ? CarinoPdf.fileName(stem, f) : stem);
+}
+
+async function rpDownload(){
+  const btn = rpEl('rp-download'), status = rpEl('rp-status');
+  if(!btn || btn.disabled || _rp.busy || !_rp.ready || !_rp.html || !_rp.cfg || !window.CarinoPdf) return;
+  const f = rpFileFormat();
+  const stem = _rp.cfg.file || _rp.cfg.name || 'report';
+  _rp.busy = true;
+  btn.disabled = true;
+  if(f === 'pdf') setText(status, 'Creating the PDF…');
+  let r;
+  try { r = await CarinoPdf.download({ html: _rp.html, name: stem, format: f, fonts: 'fonts/carino-fonts.css', producer: 'Carino Files' }); }
+  catch(e){ r = { ok: false, error: String(e) }; }
+  _rp.busy = false;
+  btn.disabled = !_rp.ready;
+  if(!_rp.cfg) return;   // closed while it was being made
+  if(r && r.ok) rpPageStatus();
+  else setText(status, f === 'pdf' ? 'Could not create the PDF.' : 'Could not create the HTML file.');
 }
 
 function openReportPreview(cfg){
   const scrim = rpEl('rp-scrim');
   if(!scrim || !cfg || typeof cfg.build !== 'function') return Promise.resolve();
   _rp.cfg = cfg;
-  setRaw(rpEl('rp-name'), cfg.name || '');
+  rpFormatSwitch();
+  rpLabelFile();
   CarinoUI.modal.open(scrim, { onClose: rpDrop, returnFocus: cfg.returnFocus || null });
   return rpRefresh();
 }
 
 function rpDrop(){
-  _rp.seq++; _rp.cfg = null; _rp.ready = false;
+  _rp.seq++; _rp.cfg = null; _rp.ready = false; _rp.html = ''; _rp.pages = 0;
   const frame = rpEl('rp-frame');
   if(frame){ frame.onload = null; frame.removeAttribute('srcdoc'); Object.assign(frame.style, { width: '', height: '', transform: '' }); }
   setRaw(rpEl('rp-name'), '');
   setText(rpEl('rp-status'), '');
   const go = rpEl('rp-print');
   if(go) go.disabled = true;
+  const dl = rpEl('rp-download');
+  if(dl) dl.disabled = true;
 }
 
 function closeReportPreview(){
@@ -169,7 +222,12 @@ function rpPrint(){
 (function wireReportPreview(){
   const go = rpEl('rp-print');
   if(go) go.addEventListener('click', rpPrint);
+  const dl = rpEl('rp-download');
+  if(dl) dl.addEventListener('click', rpDownload);
   window.addEventListener('resize', () => { if(_rp.cfg) rpFit(); });
   // A language switch rebuilds the report in the new language.
-  window.addEventListener('files:i18n', () => { if(_rp.cfg) rpRefresh(); });
+  window.addEventListener('files:i18n', () => {
+    if(_rp.format) _rp.format.relabel();
+    if(_rp.cfg) rpRefresh();
+  });
 })();

@@ -1023,7 +1023,8 @@ const MetaTool = (() => {
   function printMeta(){
     if(!current){ toast(t('Open a file first'), 'err'); return; }
     const c = current;
-    openReportPreview({ name: c.file.name, build: () => metaReport(c), returnFocus: $('md-export-btn') });
+    const stem = c.file.name.replace(/\.[^.]+$/, '') || c.file.name;
+    openReportPreview({ name: c.file.name, file: stem + '-metadata', build: () => metaReport(c), returnFocus: $('md-export-btn') });
   }
 
   async function metaReport(c){
