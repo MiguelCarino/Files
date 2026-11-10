@@ -967,10 +967,12 @@ const MetaTool = (() => {
 
   /* ---------- PRINT / PDF ----------
      The overview (every metadata group, staged edits applied) as a branded
-     report, through the browser's print dialog (→ Save as PDF). The light
-     "paper" palette and logo header are the Quote document's, so every
-     Carino export looks like one family. The logo is fetched on the first
-     print, not with the page. */
+     report. It opens in the report preview (js/report-preview.js) first; the
+     preview's Print sends that same document to the browser's print dialog
+     (→ Save as PDF), Close keeps nothing. The light "paper" palette and logo
+     header are the Quote document's, so every Carino export looks like one
+     family. The logo is fetched on the first print, not with the page; the
+     fonts are the site's own (fonts/carino-fonts.css), never an outside one. */
   let logoURI = '';
   async function logoDataURI(){
     if(logoURI) return logoURI;
@@ -983,10 +985,11 @@ const MetaTool = (() => {
     return logoURI;
   }
 
-  function carinoBrandedPrint(opts){
+  function carinoBrandedReport(opts){
+    const fonts = new URL('fonts/carino-fonts.css', document.baseURI).href;
     const logo = opts.logo ? `<img class="ph-logo" src="${esc(opts.logo)}" alt="Carino Systems">` : '';
     const metaHtml = opts.meta ? `<div class="ph-meta">${esc(opts.meta)}</div>` : '';
-    const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(opts.title)}</title><style>
+    const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(opts.title)}</title><link rel="stylesheet" href="${esc(fonts)}"><style>
       :root{ --primary:#b45309; --ink:#1f2937; --muted:#6b7280; --rule:#e5e7eb; }
       html{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
       *{box-sizing:border-box;} body{font:12px/1.5 'IBM Plex Sans',-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);margin:24px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -1012,23 +1015,20 @@ const MetaTool = (() => {
       ${opts.body}
       <footer>${esc(t('Generated locally by Carino Systems — nothing left this device.'))}</footer>
     </body></html>`;
-
-    const ifr = document.createElement('iframe');
-    ifr.setAttribute('aria-hidden', 'true');
-    ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
-    document.body.appendChild(ifr);
-    const w = ifr.contentWindow, dd = w.document;
-    dd.open(); dd.write(doc); dd.close();
-    const cleanup = () => setTimeout(() => { try { ifr.remove(); } catch(e){} }, 500);
-    w.onafterprint = cleanup;
-    setTimeout(() => { try { w.focus(); w.print(); } catch(e){ cleanup(); } }, 60);
+    return doc;
   }
 
-  async function printMeta(){
+  // The report is built from the file as it is when Printable report is
+  // clicked (c), again on a language switch while the preview is open.
+  function printMeta(){
     if(!current){ toast(t('Open a file first'), 'err'); return; }
-    const c = current, d = c.det, f = c.file;
+    const c = current;
+    openReportPreview({ name: c.file.name, build: () => metaReport(c), returnFocus: $('md-export-btn') });
+  }
+
+  async function metaReport(c){
+    const d = c.det, f = c.file;
     const logo = await logoDataURI();
-    if(current !== c) return;
     const now = new Date();
     const p2 = n => String(n).padStart(2, '0');
     const stamp = now.getFullYear() + '-' + p2(now.getMonth() + 1) + '-' + p2(now.getDate()) + ' ' + p2(now.getHours()) + ':' + p2(now.getMinutes());
@@ -1047,7 +1047,7 @@ const MetaTool = (() => {
     const advisory = d.advisory
       ? `<div class="adv adv-${esc(d.advisory.level)}">${advisoryHTML(d.advisory)}</div>` : '';
 
-    carinoBrandedPrint({
+    return carinoBrandedReport({
       title: t('File Metadata Overview'),
       subtitle: `${f.name} · ${fmtSize(f.size)} · ${t('generated')} ${stamp}`,
       fmt: `${d.icon} ${t(d.label)} — ${t(d.editable ? 'editable' : 'read-only')}`,

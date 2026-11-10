@@ -60,6 +60,7 @@ const NAMES = [
   'canStore', 'writableFields', 'EXIF_TEXT_FIELDS', 'ID3_TEXT_FRAMES',
   'normRect', 'clampRect', 'toImageRect', 'padRect', 'matchWords', 'redactWordsOf', 'redactOutType', 'redactClean',
   'wordsToPdfOps', 'ocrWordsOf', 'ocrPdfSafeText', 'ocrImagePageSize', 'ocrRenderPx', 'OCRPDF_MAX_PT',
+  'printPageBreaks',
 ];
 
 function load() {

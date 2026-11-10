@@ -83,6 +83,36 @@ try {
   await md.waitForLoadState('networkidle');
   const mv = vendorReqs('metadata');
   check(mv.length >= 1 && mv.every((u) => u.startsWith('vendor/metadata/exifr')), 'opened in #metadata: vendor requests are exifr only (no OCR)', mv);
+
+  // Printable report opens the in-page preview; only its Print prints, Esc closes it.
+  await md.evaluate(() => { window.__printed = 0; window.print = () => { window.__printed++; }; });
+  await md.click('#md-export-btn');
+  await md.click('#md-print');
+  ok = await md.waitForFunction(() => {
+    const b = document.getElementById('rp-print'), f = document.getElementById('rp-frame');
+    return b && !b.disabled && f.contentDocument && /File Metadata Overview/.test(f.contentDocument.body.textContent);
+  }, null, { timeout: 10000 }).then(() => true, () => false);
+  const pv = await md.evaluate(() => {
+    const f = document.getElementById('rp-frame'), s = document.getElementById('rp-scrim');
+    const w = f.contentWindow;
+    w.__printed = 0; w.print = () => { w.__printed++; };
+    return { open: !s.hidden, top: getComputedStyle(s).top, nav: getComputedStyle(document.documentElement).getPropertyValue('--nav-h').trim(),
+      status: document.getElementById('rp-status').textContent, name: document.getElementById('rp-name').textContent,
+      sheet: w.getComputedStyle(f.contentDocument.body).backgroundColor, printed: window.__printed };
+  });
+  check(ok && pv.open && pv.printed === 0 && /page/.test(pv.status) && pv.name === 'dot.png' && pv.top !== '0px',
+    'Printable report shows a preview first (below the navbar, page count, file name), nothing printed yet', pv);
+  await md.click('#rp-print');
+  const printed = await md.evaluate(() => ({ frame: document.getElementById('rp-frame').contentWindow.__printed, page: window.__printed }));
+  check(printed.frame === 1 && printed.page === 0, "the preview's Print prints the preview frame once", printed);
+  // Focus inside the frame (a click on the sheet) must not swallow Esc.
+  await md.evaluate(() => { const w = document.getElementById('rp-frame').contentWindow; w.focus(); w.document.body.focus(); });
+  await md.frameLocator('#rp-frame').locator('body').press('Escape');
+  const shut = await md.evaluate(() => ({ hidden: document.getElementById('rp-scrim').hidden,
+    srcdoc: document.getElementById('rp-frame').hasAttribute('srcdoc'), ws: !!document.querySelector('#tool-metadata.active'),
+    focus: document.activeElement && document.activeElement.id }));
+  check(shut.hidden && !shut.srcdoc && shut.ws, 'Esc (focus in the frame) closes the preview, drops it and stays on #metadata', shut);
+  check(shut.focus === 'md-export-btn', 'closing the preview returns focus to the Export button', shut);
   await md.close();
 
   /* ── 4 · a JPEG with GPS: advisory, then a clean copy ── */
